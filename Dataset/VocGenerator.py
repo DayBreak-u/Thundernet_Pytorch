@@ -11,7 +11,7 @@ from .load_voctxt import get_crowd
 
 
 
-class CrowdHumanGenerator(Dataset):
+class VocGenerator(Dataset):
     def __init__(self, path, type, config, preloaded=False, transform=None):
         self.dataset = get_crowd(path, type=type)
         self.dataset_len = len(self.dataset)

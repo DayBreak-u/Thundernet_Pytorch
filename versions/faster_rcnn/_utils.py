@@ -125,7 +125,7 @@ class BoxCoder(object):
     the representation used for training the regressors.
     """
 
-    def __init__(self, weights, bbox_xform_clip=math.log(320. / 32)):
+    def __init__(self, weights, bbox_xform_clip=math.log(480. / 32)):
         """
         Arguments:
             weights (4-element tuple)

@@ -11,8 +11,8 @@ num_classes = Configs.get("num_classes")
 Snet_version = Configs.get("Snet_version")
 anchor_sizes = Configs.get("anchor_sizes")
 aspect_ratios = Configs.get("aspect_ratios")
-min_size = Configs.get("min_size")
-max_size = Configs.get("max_size")
+Multi_size = Configs.get("Multi_size")
+
 
 
 
@@ -156,7 +156,7 @@ def get_thundernet():
     # feature maps to use.
     roi_pooler = PsRoIAlign( output_size=7, sampling_ratio=2)
 
-    model = FasterRCNN(CEM_SAM, num_classes=None, rpn_anchor_generator=anchor_generator, min_size=min_size, max_size=max_size,
+    model = FasterRCNN(CEM_SAM, num_classes=None, rpn_anchor_generator=anchor_generator, Multi_size=Multi_size ,
                        box_roi_pool=roi_pooler, rpn_head=rpn_head,
                        box_head=onenlpHead, box_predictor=box_predictor)
 

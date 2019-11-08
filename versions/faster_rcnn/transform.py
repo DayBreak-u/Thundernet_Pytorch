@@ -20,12 +20,11 @@ class GeneralizedRCNNTransform(nn.Module):
     It returns a ImageList for the inputs, and a List[Dict[Tensor]] for the targets
     """
 
-    def __init__(self, min_size, max_size, image_mean, image_std):
+    def __init__(self, Multi_size, image_mean, image_std):
         super(GeneralizedRCNNTransform, self).__init__()
-        if not isinstance(min_size, (list, tuple)):
-            min_size = (min_size,)
-        self.min_size = min_size
-        self.max_size = max_size
+
+        self.Multi_size = Multi_size
+        self.count = 0
         self.image_mean = image_mean
         self.image_std = image_std
 
@@ -54,20 +53,57 @@ class GeneralizedRCNNTransform(nn.Module):
         std = torch.as_tensor(self.image_std, dtype=dtype, device=device)
         return (image - mean[:, None, None]) / std[:, None, None]
 
+    # def resize(self, image, target):
+    #     h, w = image.shape[-2:]
+    #     min_size = float(min(image.shape[-2:]))
+    #     max_size = float(max(image.shape[-2:]))
+    #     if self.training:
+    #         size = random.choice(self.min_size)
+    #     else:
+    #         # FIXME assume for now that testing uses the largest scale
+    #         size = self.min_size[-1]
+    #
+    #
+    #     scale_factor = size / min_size
+    #
+    #     if max_size * scale_factor > self.max_size:
+    #         scale_factor = self.max_size / max_size
+    #
+    #
+    #     image = torch.nn.functional.interpolate(
+    #         image[None], scale_factor=scale_factor, mode='bilinear', align_corners=False)[0]
+    #
+    #     if target is None:
+    #         return image, target
+    #
+    #     bbox = target["boxes"]
+    #     bbox = resize_boxes(bbox, (h, w), image.shape[-2:])
+    #     target["boxes"] = bbox
+    #
+    #     if "masks" in target:
+    #         mask = target["masks"]
+    #         mask = misc_nn_ops.interpolate(mask[None].float(), scale_factor=scale_factor)[0].byte()
+    #         target["masks"] = mask
+    #
+    #     if "keypoints" in target:
+    #         keypoints = target["keypoints"]
+    #         keypoints = resize_keypoints(keypoints, (h, w), image.shape[-2:])
+    #         target["keypoints"] = keypoints
+    #     return image, target
+
     def resize(self, image, target):
         h, w = image.shape[-2:]
-        min_size = float(min(image.shape[-2:]))
-        max_size = float(max(image.shape[-2:]))
-        if self.training:
-            size = random.choice(self.min_size)
+        self.count += 1
+        if self.training and self.count % 1000 ==0:
+            size = random.choice(self.Multi_size)
+            self.count = 1
+
         else:
             # FIXME assume for now that testing uses the largest scale
-            size = self.min_size[-1]
-        scale_factor = size / min_size
-        if max_size * scale_factor > self.max_size:
-            scale_factor = self.max_size / max_size
+            size = self.Multi_size[1] #320
+
         image = torch.nn.functional.interpolate(
-            image[None], scale_factor=scale_factor, mode='bilinear', align_corners=False)[0]
+            image[None], size=(size,size), mode='bilinear', align_corners=False)[0]
 
         if target is None:
             return image, target
@@ -86,6 +122,7 @@ class GeneralizedRCNNTransform(nn.Module):
             keypoints = resize_keypoints(keypoints, (h, w), image.shape[-2:])
             target["keypoints"] = keypoints
         return image, target
+
 
     def batch_images(self, images, size_divisible=32):
         # concatenate

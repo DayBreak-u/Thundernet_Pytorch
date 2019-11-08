@@ -25,7 +25,7 @@ os.mkdir("./result")
 model = get_thundernet()
 
 model.cuda()
-model.load_state_dict(torch.load('./save_weights/efficient_rcnn_34.pth'))
+model.load_state_dict(torch.load('./save_weights/efficient_rcnn_17.pth'))
 model.eval()
 
 

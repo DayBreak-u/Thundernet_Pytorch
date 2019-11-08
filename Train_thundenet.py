@@ -1,7 +1,7 @@
 import torch
 from versions.nn.Snet import  get_thundernet
 from torch.utils.data import DataLoader
-from Dataset.VocGenerator import CrowdHumanGenerator
+from Dataset.VocGenerator import VocGenerator
 from Utils.Engine import train_one_epoch, evaluate
 from Utils import Transforms as T
 from config import Configs
@@ -17,7 +17,7 @@ parser.add_argument('--num_workers', default=4, type=int, help='Number of worker
 parser.add_argument('--batchsize' , default=16, type=int, help='batchsize ')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--resume_net_path', default="./save_weights/efficient_rcnn_39.pth", help='resume net path  for retraining')
+parser.add_argument('--resume_net_path', default="./save_weights/efficient_rcnn_22.pth", help='resume net path  for retraining')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--step_lr', default=[50,100,200], type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
@@ -39,8 +39,8 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 
-train_dataset = CrowdHumanGenerator(path= args.training_dataset, type="train", config=None, transform=get_transform(train=True))
-validation_dataset = CrowdHumanGenerator(path=args.val_dataset, type="validation", config=None, transform=get_transform(train=False))
+train_dataset = VocGenerator(path= args.training_dataset, type="train", config=None, transform=get_transform(train=True))
+validation_dataset = VocGenerator(path=args.val_dataset, type="validation", config=None, transform=get_transform(train=False))
 
 train_loader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True, num_workers=args.num_workers, collate_fn=collate_fn)
 test_loader = DataLoader(validation_dataset, batch_size=args.batchsize, shuffle=False, num_workers=args.num_workers, collate_fn=collate_fn)

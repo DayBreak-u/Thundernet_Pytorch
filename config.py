@@ -11,8 +11,8 @@ Configs = {
     "aspect_ratios" : (( 1./2. , 3./4. , 1. ,4./3. , 2.) ,),
     "anchor_number" : 5 * 5,
     "spatial_scale" :  1./16. ,
-    "min_size" : 320 ,
-    "max_size" : 320,
+    "Multi_size" : [ 240,320,480] ,
+
 
     "CLASSES" : ('aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
                    'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',

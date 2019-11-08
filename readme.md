@@ -31,6 +31,13 @@ python3 Train_thundenet.py
 python3 Testing.py
 ```
 
+
+## TODO LIST
+
+ - add moer data aug
+ - 完善部分测试数据
+ - 添加MNN、NCNN C++推理代码
+
 ## Citation
 Please cite the paper in your publications if it helps your research:
 ```
