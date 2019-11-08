@@ -17,7 +17,7 @@ parser.add_argument('--num_workers', default=4, type=int, help='Number of worker
 parser.add_argument('--batchsize' , default=16, type=int, help='batchsize ')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-parser.add_argument('--resume_net_path', default="./save_weights/efficient_rcnn_22.pth", help='resume net path  for retraining')
+parser.add_argument('--resume_net_path', default="./save_weights/efficient_rcnn_7.pth", help='resume net path  for retraining')
 parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight decay for SGD')
 parser.add_argument('--step_lr', default=[50,100,200], type=float, help='Weight decay for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')

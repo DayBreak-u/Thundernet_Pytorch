@@ -24,6 +24,7 @@ class GeneralizedRCNNTransform(nn.Module):
         super(GeneralizedRCNNTransform, self).__init__()
 
         self.Multi_size = Multi_size
+        self.size = None
         self.count = 0
         self.image_mean = image_mean
         self.image_std = image_std
@@ -93,17 +94,17 @@ class GeneralizedRCNNTransform(nn.Module):
 
     def resize(self, image, target):
         h, w = image.shape[-2:]
-        self.count += 1
-        if self.training and self.count % 1000 ==0:
-            size = random.choice(self.Multi_size)
-            self.count = 1
 
-        else:
+        if self.training and self.count % 100 ==0:
+            self.size = random.choice(self.Multi_size)
+            self.count = 1
+        elif not self.training:
             # FIXME assume for now that testing uses the largest scale
-            size = self.Multi_size[1] #320
+            self.size = self.Multi_size[1] #320
+        self.count += 1
 
         image = torch.nn.functional.interpolate(
-            image[None], size=(size,size), mode='bilinear', align_corners=False)[0]
+            image[None], size=( self.size , self.size ), mode='bilinear', align_corners=False)[0]
 
         if target is None:
             return image, target

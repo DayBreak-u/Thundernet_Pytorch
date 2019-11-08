@@ -209,6 +209,7 @@ class FasterRCNN(GeneralizedRCNN):
         transform = GeneralizedRCNNTransform( Multi_size, image_mean, image_std)
 
         super(FasterRCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        self.transform = transform
 
 
 class TwoMLPHead(nn.Module):
