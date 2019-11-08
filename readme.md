@@ -10,7 +10,7 @@
 
 ## Lib Prepare 
 ```sh
-git clone 
+git clone https://github.com/ouyanghuiyu/Thundernet_Pytorch.git
 ```
 ### Build PSROIAlign layer
 ```sh
