@@ -112,15 +112,7 @@ class GeneralizedRCNNTransform(nn.Module):
         bbox = resize_boxes(bbox, (h, w), image.shape[-2:])
         target["boxes"] = bbox
 
-        if "masks" in target:
-            mask = target["masks"]
-            mask = misc_nn_ops.interpolate(mask[None].float(), scale_factor=scale_factor)[0].byte()
-            target["masks"] = mask
-
-        if "keypoints" in target:
-            keypoints = target["keypoints"]
-            keypoints = resize_keypoints(keypoints, (h, w), image.shape[-2:])
-            target["keypoints"] = keypoints
+  
         return image, target
 
 
