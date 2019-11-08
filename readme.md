@@ -36,6 +36,7 @@ python3 Testing.py
 
  - add more data aug
  - add voc test result
+ - add coco train and test
  - add NCNN inference
 
 ## Citation
