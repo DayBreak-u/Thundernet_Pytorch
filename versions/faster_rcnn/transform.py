@@ -112,7 +112,7 @@ class GeneralizedRCNNTransform(nn.Module):
         bbox = resize_boxes(bbox, (h, w), image.shape[-2:])
         target["boxes"] = bbox
 
-  
+
         return image, target
 
 
