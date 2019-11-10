@@ -21,19 +21,15 @@ def _crop(image, boxes, labels, landm, img_dim):
     height, width, _ = image.shape
     pad_image_flag = True
 
-    if random.uniform(0, 1) <= 0.05:
-        image_aray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
-        for  i in range(3):
-            image[...,i] = image_aray
+    # if random.uniform(0, 1) <= 0.05:
+    #     image_aray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
+    #     for  i in range(3):
+    #         image[...,i] = image_aray
 
     for _ in range(250):
-        if height == 480 or width == 480:
-            if random.uniform(0, 1) <= 0.5:
-                scale = 1.0
-            else:
-                scale = random.uniform(0.85, 1.0)
 
-        elif random.uniform(0, 1) <= 0.4:
+
+        if random.uniform(0, 1) <= 0.4:
             scale = 1.0
         else:
             scale = random.uniform(0.3, 1.0)
@@ -77,22 +73,7 @@ def _crop(image, boxes, labels, landm, img_dim):
         boxes_t[:, 2:] = np.minimum(boxes_t[:, 2:], roi[2:])
         boxes_t[:, 2:] -= roi[:2]
 
-        # landm
-        landms_t[:, :, :2] = landms_t[:, :, :2] - roi[:2]
 
-        # landms_t[:, :, :2] = np.maximum(landms_t[:, :, :2], np.array([0, 0]))
-        # landms_t[:, :, :2] = np.minimum(landms_t[:, :, :2], roi[2:] - roi[:2])
-
-        landms_t = landms_t.reshape([-1, 10])
-
-
-	# make sure that the cropped image contains at least one face > 16 pixel at training image scale
-        b_w_t = (boxes_t[:, 2] - boxes_t[:, 0] + 1) / w * img_dim
-        b_h_t = (boxes_t[:, 3] - boxes_t[:, 1] + 1) / h * img_dim
-        mask_b = np.minimum(b_w_t, b_h_t) > 5
-        boxes_t = boxes_t[mask_b]
-        labels_t = labels_t[mask_b]
-        landms_t = landms_t[mask_b]
 
         if boxes_t.shape[0] == 0:
             continue
@@ -106,9 +87,9 @@ def _crop(image, boxes, labels, landm, img_dim):
     mask_b = np.minimum(b_w_t, b_h_t) > 5
     boxes = boxes[mask_b]
     labels = labels[mask_b]
-    landm = landm[mask_b]
 
-    return image, boxes, labels, landm, pad_image_flag
+
+    return image, boxes, labels, pad_image_flag
 
 
 def _distort(image):
@@ -198,33 +179,17 @@ def _expand(image, boxes, fill, p):
     return image, boxes_t
 
 
-def _mirror(image, boxes, landms):
+def _mirror(image, boxes):
     height, width, _ = image.shape
     if random.randrange(2):
         image = image[:, ::-1]
         boxes = boxes.copy()
         boxes[:, 0::2] = width - boxes[:, 2::-2]
 
-        # landm
-
-        landms = landms.copy()
-        landms = landms.reshape([-1, 5, 2])
-        for i  in range(len(landms)):
-            landm = landms[i]
-            if np.any(landm < 0  ) or np.any(landm[:,0]>width ) or np.any(landm[:,1]>height ):
-                landms[i] = np.ones([5,2]) * -1
-            else:
-                landms[i, :, 0] = width - landms[i, :, 0]
-                tmp = landms[i, 1, :].copy()
-                landms[i, 1, :] = landms[i, 0, :]
-                landms[i, 0, :] = tmp
-                tmp1 = landms[i, 4, :].copy()
-                landms[i, 4, :] = landms[i, 3, :]
-                landms[i, 3, :] = tmp1
-        landms = landms.reshape([-1, 10])
 
 
-    return image, boxes, landms
+
+    return image, boxes
 
 
 def _pad_to_square(image, rgb_mean, pad_image_flag):
@@ -288,14 +253,14 @@ class preproc(object):
         self.img_dim = img_dim
         self.rgb_means = rgb_mean
 
-    def __call__(self, image, boxes , landm ,labels):
+    def __call__(self, image, boxes  ,labels):
         # assert targets.shape[0] > 0, "this image does not have gt"
 
 
-        image_t, boxes_t, labels_t, landm_t, pad_image_flag = _crop(image, boxes, labels, landm, self.img_dim)
+        image_t, boxes_t, labels_t,  pad_image_flag = _crop(image, boxes, labels,  self.img_dim)
         image_t = _distort(image_t)
         image_t = _pad_to_square(image_t,self.rgb_means, pad_image_flag)
-        image_t, boxes_t, landm_t = _mirror(image_t, boxes_t, landm_t)
+        image_t, boxes_t, landm_t = _mirror(image_t, boxes_t)
         height, width, _ = image_t.shape
         # image_t = _resize_subtract_mean(image_t, self.img_dim, self.rgb_means)
 
@@ -330,5 +295,5 @@ class preproc(object):
         labels_t = np.expand_dims(labels_t, 1)
         # targets_t = np.hstack((boxes_t, landm_t, labels_t))
         image_t = np.ascontiguousarray(image_t, dtype=np.float32)
-        return image_t  , boxes_t,labels_t,landm_t
+        return image_t  , boxes_t,labels_t
         # return image_t / 255.0 , boxes_t,labels_t,landm_t
