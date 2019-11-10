@@ -25,8 +25,7 @@ class SNet(nn.Module):
 
     def __init__(self,  version=49, **kwargs):
         super(SNet,self).__init__()
-        # num_layers = [4, 8, 4]
-        num_layers = [4, 3, 2]
+        num_layers = [4, 8, 4]
         self.num_layers = num_layers
         channels = self.cfg[version]
         self.channels = channels
