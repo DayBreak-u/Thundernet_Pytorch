@@ -15,7 +15,7 @@ def matrix_iof(a, b):
     return area_i / np.maximum(area_a[:, np.newaxis], 1)
 
 
-def _crop(image, boxes, labels, landm, img_dim):
+def _crop(image, boxes, labels, img_dim):
 
 
     height, width, _ = image.shape
@@ -58,10 +58,6 @@ def _crop(image, boxes, labels, landm, img_dim):
         mask_a = np.logical_and(roi[:2] < centers, centers < roi[2:]).all(axis=1)
         boxes_t = boxes[mask_a].copy()
         labels_t = labels[mask_a].copy()
-
-        landms_t = landm[mask_a].copy()
-
-        landms_t = landms_t.reshape([-1, 5, 2])
 
         if boxes_t.shape[0] == 0:
             continue
