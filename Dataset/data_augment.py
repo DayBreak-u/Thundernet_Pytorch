@@ -15,11 +15,10 @@ def matrix_iof(a, b):
     return area_i / np.maximum(area_a[:, np.newaxis], 1)
 
 
-def _crop(image, boxes, labels, img_dim):
+def _crop(image, boxes, labels):
 
 
     height, width, _ = image.shape
-    pad_image_flag = True
 
     # if random.uniform(0, 1) <= 0.05:
     #     image_aray = cv2.cvtColor(image,cv2.COLOR_RGB2GRAY)
@@ -30,23 +29,19 @@ def _crop(image, boxes, labels, img_dim):
 
 
         if random.uniform(0, 1) <= 0.4:
-            scale = 1.0
+            scale_w = 1.0
+            scale_h = 1.0
         else:
-            scale = random.uniform(0.3, 1.0)
+            scale_w = random.uniform(0.3, 1.0)
+            scale_h = random.uniform(0.3, 1.0)
         # PRE_SCALES = [0.3, 0.45, 0.6, 0.8, 1.0]
         # scale = random.choice(PRE_SCALES)
-        short_side = min(width, height)
-        w = int(scale * short_side)
-        h = w
-
-        if width == w:
-            l = 0
-        else:
-            l = random.randrange(width - w)
-        if height == h:
-            t = 0
-        else:
-            t = random.randrange(height - h)
+        # short_side = min(width, height)
+        w = int(scale_w * width)
+        h = int(scale_h * height)
+        # h = w
+        l = random.randrange(width - w)
+        t = random.randrange(height - h)
         roi = np.array((l, t, l + w, t + h))
 
         value = matrix_iof(boxes, roi[np.newaxis])
@@ -74,18 +69,12 @@ def _crop(image, boxes, labels, img_dim):
         if boxes_t.shape[0] == 0:
             continue
 
-        pad_image_flag = False
-
-        return image_t, boxes_t, labels_t, landms_t, pad_image_flag
-
-    b_w_t = (boxes[:, 2] - boxes[:, 0] + 1) / width * img_dim
-    b_h_t = (boxes[:, 3] - boxes[:, 1] + 1) / height * img_dim
-    mask_b = np.minimum(b_w_t, b_h_t) > 5
-    boxes = boxes[mask_b]
-    labels = labels[mask_b]
 
 
-    return image, boxes, labels, pad_image_flag
+        return image_t, boxes_t, labels_t
+
+
+    return image, boxes, labels
 
 
 def _distort(image):
@@ -182,21 +171,9 @@ def _mirror(image, boxes):
         boxes = boxes.copy()
         boxes[:, 0::2] = width - boxes[:, 2::-2]
 
-
-
-
     return image, boxes
 
 
-def _pad_to_square(image, rgb_mean, pad_image_flag):
-    if not pad_image_flag:
-        return image
-    height, width, _ = image.shape
-    long_side = max(width, height)
-    image_t = np.empty((long_side, long_side, 3), dtype=image.dtype)
-    image_t[:, :] = rgb_mean
-    image_t[0:0 + height, 0:0 + width] = image
-    return image_t
 
 
 def _resize_subtract_mean(image, insize, rgb_mean):
@@ -253,10 +230,9 @@ class preproc(object):
         # assert targets.shape[0] > 0, "this image does not have gt"
 
 
-        image_t, boxes_t, labels_t,  pad_image_flag = _crop(image, boxes, labels,  self.img_dim)
+        image_t, boxes_t, labels_t = _crop(image, boxes, labels)
         image_t = _distort(image_t)
-        image_t = _pad_to_square(image_t,self.rgb_means, pad_image_flag)
-        image_t, boxes_t, landm_t = _mirror(image_t, boxes_t)
+        image_t, boxes_t = _mirror(image_t, boxes_t)
         height, width, _ = image_t.shape
         # image_t = _resize_subtract_mean(image_t, self.img_dim, self.rgb_means)
 
@@ -270,17 +246,10 @@ class preproc(object):
         if debug:
             cv2.imwrite("test.jpg", image_t)
             image_t = cv2.imread("test.jpg")
-            for box, landmark5 in zip(boxes_t, landm_t):
-                landmark5 = landmark5.astype(np.int).reshape([-1, 2])
+            for box in boxes_t:
                 box = box.astype(np.int)
                 cv2.rectangle(image_t, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
 
-                # print(landmark.shape)
-                for l in range(landmark5.shape[0]):
-                    color = (0, 0, 255)
-                    if l == 0 or l == 3:
-                        color = (0, 255, 0)
-                    cv2.circle(image_t, (landmark5[l][0], landmark5[l][1]), 1, color, 2)
             cv2.imwrite("temp.jpg", image_t)
 
 
@@ -289,7 +258,6 @@ class preproc(object):
         # image_t = image_t.transpose(2, 0, 1)
 
         labels_t = np.expand_dims(labels_t, 1)
-        # targets_t = np.hstack((boxes_t, landm_t, labels_t))
+
         image_t = np.ascontiguousarray(image_t, dtype=np.float32)
         return image_t  , boxes_t,labels_t
-        # return image_t / 255.0 , boxes_t,labels_t,landm_t
