@@ -25,12 +25,12 @@ os.mkdir("./result")
 model = get_thundernet()
 
 model.cuda()
-model.load_state_dict(torch.load('./save_weights/efficient_rcnn_17.pth'))
+model.load_state_dict(torch.load('./save_weights/efficient_rcnn_18.pth'))
 model.eval()
 
 
 datas = open("data_pre/VOC2012_test.txt").readlines()
-for img_path in datas[:10]:
+for img_path in datas[10:50]:
 
     # img_path =  "VOC2012/JPEGImages/2008_000039.jpg"
     img_path =  os.path.join(VOCROOT,img_path.strip()[1:])
@@ -57,7 +57,7 @@ for img_path in datas[:10]:
 
 
     for box in boxes:
-        if box[4] < 0.4:
+        if box[5] < 0.1:
             continue
         box = box.tolist()
         score = float(box[5])
@@ -68,7 +68,7 @@ for img_path in datas[:10]:
         cx = box[0]
         cy = box[1] + 12
         cv2.putText(open_cv_image, "{}:{:.2f}".format(label,score), (int(cx), int(cy)),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
+                    cv2.FONT_HERSHEY_DUPLEX, 0.6, (0, 255, 0))
     # cv2.imshow("sd", open_cv_image)
     cv2.imwrite("result/{}".format(img_path.split("/")[-1]), open_cv_image)
 # cv2.waitKey(30000)

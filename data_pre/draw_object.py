@@ -42,7 +42,7 @@ for line in datas:
                     cv2.rectangle(im, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
                     cx,cy = box[0] , box[1] +10
                     cv2.putText(im, "{}".format(label), (int(cx), int(cy)),
-                                cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
+                                cv2.FONT_HERSHEY_DUPLEX, 0.5, (0, 0, 255))
                 cv2.imwrite("temp.jpg", im)
                 time.sleep(1)
 

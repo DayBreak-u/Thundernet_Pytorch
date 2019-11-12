@@ -40,8 +40,15 @@ def _crop(image, boxes, labels):
         w = int(scale_w * width)
         h = int(scale_h * height)
         # h = w
-        l = random.randrange(width - w)
-        t = random.randrange(height - h)
+        # print(width,w)
+        if width == w:
+            l = 0
+        else:
+            l = random.randrange(width - w)
+        if height == h:
+            t = 0
+        else:
+            t = random.randrange(height - h)
         roi = np.array((l, t, l + w, t + h))
 
         value = matrix_iof(boxes, roi[np.newaxis])
@@ -220,11 +227,10 @@ def _subtract_mean(image, rgb_mean):
 #
 #         return image_t, targets_t
 
-class preproc(object):
+class Preproc(object):
 
-    def __init__(self, img_dim ,  rgb_mean = (104, 117, 123) ):
-        self.img_dim = img_dim
-        self.rgb_means = rgb_mean
+    def __init__(self ):
+        pass
 
     def __call__(self, image, boxes  ,labels):
         # assert targets.shape[0] > 0, "this image does not have gt"
@@ -234,13 +240,7 @@ class preproc(object):
         image_t = _distort(image_t)
         image_t, boxes_t = _mirror(image_t, boxes_t)
         height, width, _ = image_t.shape
-        # image_t = _resize_subtract_mean(image_t, self.img_dim, self.rgb_means)
 
-        # boxes_t[:, 0::2] /= width
-        # boxes_t[:, 1::2] /= height
-        #
-        # landm_t[:, 0::2] /= width
-        # landm_t[:, 1::2] /= height
 
         debug = 0
         if debug:

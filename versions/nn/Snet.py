@@ -131,10 +131,12 @@ def get_thundernet():
     backbone = SNet(Snet_version)
 
     if len(backbone.channels) == 5:
-        CEM_SAM = CEM(backbone.channels[-3] , backbone.channels[-1] ,backbone.channels[-1], backbone)
+        backbone = CEM(backbone.channels[-3] , backbone.channels[-1] ,backbone.channels[-1], backbone)
     else:
-        CEM_SAM = CEM(backbone.channels[-2], backbone.channels[-1], backbone.channels[-1], backbone)
-    CEM_SAM.out_channels = CEM_FILTER
+        backbone = CEM(backbone.channels[-2], backbone.channels[-1], backbone.channels[-1], backbone)
+
+    # backbone = LightHead(CEM_SAM,CEM_FILTER,CEM_FILTER)
+    backbone.out_channels = CEM_FILTER
 
     rpn_head = RPN(CEM_FILTER, 256)
 
@@ -155,7 +157,7 @@ def get_thundernet():
     # feature maps to use.
     roi_pooler = PsRoIAlign( output_size=7, sampling_ratio=2)
 
-    model = FasterRCNN(CEM_SAM, num_classes=None, rpn_anchor_generator=anchor_generator, Multi_size=Multi_size ,
+    model = FasterRCNN(backbone, num_classes=None, rpn_anchor_generator=anchor_generator, Multi_size=Multi_size ,
                        box_roi_pool=roi_pooler, rpn_head=rpn_head,
                        box_head=onenlpHead, box_predictor=box_predictor)
 

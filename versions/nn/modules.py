@@ -63,6 +63,53 @@ class CEM(nn.Module):
 
         return C4_lat + C5_lat + Cglb_lat
 
+#
+# class RPN(nn.Module):
+#     """region proposal network"""
+#
+#     def __init__(self, in_channels=245, f_channels=256):
+#         super(RPN, self).__init__()
+#         self.num_anchors = anchor_number
+#
+#         self.dw5_5 = nn.Conv2d(in_channels, in_channels, kernel_size=5, stride=1, padding=2, groups=in_channels)
+#         self.bn0 = nn.BatchNorm2d(in_channels)
+#         self.con1x1 = nn.Conv2d(in_channels, f_channels, kernel_size=1)
+#         self.bn1 = nn.BatchNorm2d(f_channels)
+#
+#         self.conv1 = nn.Conv2d(f_channels, in_channels, kernel_size=1)
+#         self.bn2 = nn.BatchNorm2d(in_channels)
+#
+#         self.loc_conv = nn.Conv2d(in_channels, self.num_anchors, kernel_size=1, stride=1,
+#                                   padding=0
+#                                   )
+#         self.rpn_cls_pred = nn.Conv2d(in_channels, 4 * self.num_anchors, kernel_size=1,
+#                                       stride=1, padding=0
+#                                       )
+#
+#         for l in self.children():
+#             torch.nn.init.normal_(l.weight, std=0.01)
+#             torch.nn.init.constant_(l.bias, 0)
+#
+#     def forward(self, x):
+#         logits = []
+#         bbox_reg = []
+#
+#         temp = self.dw5_5(x)  # SAM
+#         temp = self.bn0(temp)  # SAM
+#         temp = F.relu(temp)  # SAM
+#         temp = self.con1x1(temp)
+#         temp = self.bn1(temp)
+#         temp = F.relu(temp)
+#
+#         temp = self.conv1(temp)
+#         temp = self.bn2(temp)
+#         temp = F.sigmoid(temp)
+#         temp = x.mul(temp)
+#
+#         logits.append(self.loc_conv(temp))
+#         bbox_reg.append(self.rpn_cls_pred(temp))
+#         return logits, bbox_reg
+
 
 class RPN(nn.Module):
     """region proposal network"""
@@ -76,13 +123,11 @@ class RPN(nn.Module):
         self.con1x1 = nn.Conv2d(in_channels, f_channels, kernel_size=1)
         self.bn1 = nn.BatchNorm2d(f_channels)
 
-        self.conv1 = nn.Conv2d(f_channels, in_channels, kernel_size=1)
-        self.bn2 = nn.BatchNorm2d(in_channels)
 
-        self.loc_conv = nn.Conv2d(in_channels,  self.num_anchors, kernel_size=1, stride=1,
+        self.loc_conv = nn.Conv2d(f_channels,  self.num_anchors, kernel_size=1, stride=1,
                                padding=0
                                )
-        self.rpn_cls_pred = nn.Conv2d(in_channels, 4 * self.num_anchors, kernel_size=1,
+        self.rpn_cls_pred = nn.Conv2d(f_channels, 4 * self.num_anchors, kernel_size=1,
                                    stride=1, padding=0
                                    )
 
@@ -96,20 +141,35 @@ class RPN(nn.Module):
         logits = []
         bbox_reg = []
 
-        temp = self.dw5_5(x)  #SAM
-        temp = self.bn0(temp)  #SAM
-        temp = F.relu(temp)  #SAM
-        temp = self.con1x1(temp)
-        temp = self.bn1(temp)
-        temp = F.relu(temp)
-        temp = self.conv1(temp)
-        temp = self.bn2(temp)
-        temp = F.sigmoid(temp)
-        temp = x.mul(temp)
+        x = self.dw5_5(x)
+        x = self.bn0(x)
+        x = F.relu(x)
+        x = self.con1x1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
 
-        logits.append(self.loc_conv(temp))
-        bbox_reg.append(self.rpn_cls_pred(temp))
-        return logits, bbox_reg
+        logits.append(self.loc_conv(x))
+        bbox_reg.append(self.rpn_cls_pred(x))
+        return logits, bbox_reg , x
+
+
+class SAM(torch.nn.Module):
+    def __init__(self,  f_channels ,CEM_FILTER ):
+        super(SAM, self).__init__()
+
+        self.conv1 = nn.Conv2d(f_channels, CEM_FILTER, kernel_size=1)
+        self.bn = nn.BatchNorm2d(CEM_FILTER)
+
+    def forward(self, input):
+
+        cem = input[0]
+        rpn = input[1]
+
+        sam = self.conv1(rpn)
+        sam = self.bn(sam)
+        sam = F.sigmoid(sam)
+        out = cem.mul(sam)
+        return out
 
 
 

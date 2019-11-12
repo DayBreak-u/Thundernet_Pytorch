@@ -29,8 +29,8 @@ def get_crowd(txt_path , type="train", vis=True):
                 if len(boxes) == 0:
                     continue
                 annotation["filepath"] = path
-                annotation["bboxes"] = boxes
-                annotation["labels"] = labels
+                annotation["bboxes"] = np.array(boxes)
+                annotation["labels"] = np.array(labels)
                 image_dat.append(annotation)
                 boxes = []
                 labels = []

@@ -74,55 +74,16 @@ class FPN(nn.Module):
         return out
 
 
-#
-# class MobileNetV1(nn.Module):
-#     def __init__(self):
-#         super(MobileNetV1, self).__init__()
-#         self.stage1 = nn.Sequential(
-#             conv_bn(3, 8, 2),    # 3
-#             conv_dw(8, 16, 1),   # 7
-#             conv_dw(16, 32, 2),  # 11
-#             conv_dw(32, 32, 1),  # 19
-#             conv_dw(32, 64, 2),  # 27
-#             conv_dw(64, 64, 1),  # 43
-#         )
-#         self.stage2 = nn.Sequential(
-#             conv_dw(64, 128, 2),  # 43 + 16 = 59
-#             conv_dw(128, 128, 1), # 59 + 32 = 91
-#             conv_dw(128, 128, 1), # 91 + 32 = 123
-#             conv_dw(128, 128, 1), # 123 + 32 = 155
-#             conv_dw(128, 128, 1), # 155 + 32 = 187
-#             conv_dw(128, 128, 1), # 187 + 32 = 219
-#         )
-#         self.stage3 = nn.Sequential(
-#             conv_dw(128, 256, 2), # 219 +3 2 = 241
-#             conv_dw(256, 256, 1), # 241 + 64 = 301
-#         )
-#         self.avg = nn.AdaptiveAvgPool2d((1,1))
-#         self.fc = nn.Linear(256, 1000)
-#
-#     def forward(self, x):
-#         x = self.stage1(x)
-#         x = self.stage2(x)
-#         x = self.stage3(x)
-#         x = self.avg(x)
-#         # x = self.model(x)
-#         x = x.view(-1, 256)
-#         x = self.fc(x)
-#         return x
-
 
 class MobileNetV1(nn.Module):
-    def __init__(self) -> object:
+    def __init__(self):
         super(MobileNetV1, self).__init__()
         self.stage1 = nn.Sequential(
-            conv_bn(3, 16, 2),    # 3
-            # conv_dw(16, 16, 1),   # 7
-            conv_bn1x1(16, 16, 1),   # 7
+            conv_bn(3, 8, 2),    # 3
+            conv_dw(8, 16, 1),   # 7
             conv_dw(16, 32, 2),  # 11
             conv_dw(32, 32, 1),  # 19
             conv_dw(32, 64, 2),  # 27
-            conv_dw(64, 64, 1),  # 43
             conv_dw(64, 64, 1),  # 43
         )
         self.stage2 = nn.Sequential(
@@ -130,14 +91,16 @@ class MobileNetV1(nn.Module):
             conv_dw(128, 128, 1), # 59 + 32 = 91
             conv_dw(128, 128, 1), # 91 + 32 = 123
             conv_dw(128, 128, 1), # 123 + 32 = 155
+            conv_dw(128, 128, 1), # 155 + 32 = 187
+            conv_dw(128, 128, 1), # 187 + 32 = 219
         )
         self.stage3 = nn.Sequential(
-            conv_dw(128, 128, 2), # 219 +3 2 = 241
-            conv_dw(128, 128, 1), # 241 + 64 = 301
+            conv_dw(128, 256, 2), # 219 +3 2 = 241
+            conv_dw(256, 256, 1), # 241 + 64 = 301
         )
         self.avg = nn.AdaptiveAvgPool2d((1,1))
-        self.conv1x1 = conv_bn1X1(128, 245, 1)
-
+        self.fc = nn.Linear(256, 1000)
+    #
     def forward(self, x):
         x1 = self.stage1(x)
         x2 = self.stage2(x1)
@@ -149,6 +112,45 @@ class MobileNetV1(nn.Module):
         # x = x.view(-1, 256)
         # x = self.fc(x)
         return x1,x2,x3,x4
+
+#
+# class MobileNetV1(nn.Module):
+#     def __init__(self) -> object:
+#         super(MobileNetV1, self).__init__()
+#         self.stage1 = nn.Sequential(
+#             conv_bn(3, 16, 2),    # 3
+#             # conv_dw(16, 16, 1),   # 7
+#             conv_bn1x1(16, 16, 1),   # 7
+#             conv_dw(16, 32, 2),  # 11
+#             conv_dw(32, 32, 1),  # 19
+#             conv_dw(32, 64, 2),  # 27
+#             conv_dw(64, 64, 1),  # 43
+#             conv_dw(64, 64, 1),  # 43
+#         )
+#         self.stage2 = nn.Sequential(
+#             conv_dw(64, 128, 2),  # 43 + 16 = 59
+#             conv_dw(128, 128, 1), # 59 + 32 = 91
+#             conv_dw(128, 128, 1), # 91 + 32 = 123
+#             conv_dw(128, 128, 1), # 123 + 32 = 155
+#         )
+#         self.stage3 = nn.Sequential(
+#             conv_dw(128, 128, 2), # 219 +3 2 = 241
+#             conv_dw(128, 128, 1), # 241 + 64 = 301
+#         )
+#         self.avg = nn.AdaptiveAvgPool2d((1,1))
+#         self.conv1x1 = conv_bn1X1(128, 245, 1)
+#
+#     def forward(self, x):
+#         x1 = self.stage1(x)
+#         x2 = self.stage2(x1)
+#         x3 = self.stage3(x2)
+#
+#         x4 = self.conv1x1(x3)
+#         x4 = self.avg(x4)
+#         # x = self.model(x)
+#         # x = x.view(-1, 256)
+#         # x = self.fc(x)
+#         return x1,x2,x3,x4
 #
 # class MobileNetV1(nn.Module):
 #     def __init__(self):

@@ -375,7 +375,7 @@ class RegionProposalNetwork(torch.nn.Module):
             objectness[sampled_inds], labels[sampled_inds]
         )
 
-        return objectness_loss, box_loss
+        return objectness_loss, box_loss 
 
     def forward(self, images, features, targets=None):
         """
@@ -396,7 +396,7 @@ class RegionProposalNetwork(torch.nn.Module):
         """
         # RPN uses all feature maps that are available
         # features = list(features.values())
-        objectness, pred_bbox_deltas = self.head(features)
+        objectness, pred_bbox_deltas,rpn_out = self.head(features)
         anchors = self.anchor_generator(images, features)
 
         num_images = len(anchors)
@@ -420,4 +420,4 @@ class RegionProposalNetwork(torch.nn.Module):
                 "loss_objectness": loss_objectness,
                 "loss_rpn_box_reg": loss_rpn_box_reg,
             }
-        return boxes, losses
+        return boxes, losses , rpn_out
