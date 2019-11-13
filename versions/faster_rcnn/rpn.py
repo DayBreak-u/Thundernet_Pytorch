@@ -6,7 +6,7 @@ from torch import nn
 from torchvision.ops import boxes as box_ops
 
 from . import _utils as det_utils
-
+from .focalloss import *
 
 class AnchorGenerator(nn.Module):
     """
@@ -47,6 +47,7 @@ class AnchorGenerator(nn.Module):
         self.aspect_ratios = aspect_ratios
         self.cell_anchors = None
         self._cache = {}
+
 
     @staticmethod
     def generate_anchors(scales, aspect_ratios, device="cpu"):
@@ -354,6 +355,8 @@ class RegionProposalNetwork(torch.nn.Module):
             box_loss (Tensor
         """
 
+
+
         sampled_pos_inds, sampled_neg_inds = self.fg_bg_sampler(labels)
         sampled_pos_inds = torch.nonzero(torch.cat(sampled_pos_inds, dim=0)).squeeze(1)
         sampled_neg_inds = torch.nonzero(torch.cat(sampled_neg_inds, dim=0)).squeeze(1)
@@ -368,12 +371,17 @@ class RegionProposalNetwork(torch.nn.Module):
         box_loss = F.l1_loss(
             pred_bbox_deltas[sampled_pos_inds],
             regression_targets[sampled_pos_inds],
-            reduction="sum",
-        ) / (sampled_inds.numel())
+            reduction="mean",
+        )  # / (sampled_inds.numel())
 
         objectness_loss = F.binary_cross_entropy_with_logits(
             objectness[sampled_inds], labels[sampled_inds]
         )
+
+        # from collections import  Counter
+        # print(Counter(labels[sampled_inds].cpu().numpy()))
+
+
 
         return objectness_loss, box_loss 
 

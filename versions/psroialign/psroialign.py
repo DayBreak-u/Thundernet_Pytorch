@@ -1,4 +1,4 @@
-from versions.psroialign.PSROIAlign.model.roi_layers import PSROIAlign
+from versions.psroialign.PSROIAlign.model.roi_layers import PSROIAlign,PSROIPool
 from torch import  nn
 
 class PSROIAlignhandle(nn.Module):
@@ -22,3 +22,21 @@ class PSROIAlignhandle(nn.Module):
 
 
 
+class PSROIPoolhandle(nn.Module):
+    def __init__(self,
+                 pooled_height=7,
+                 pooled_width=7,
+                 spatial_scale=1./16.,
+                 group_size=7,
+                 output_dim=5):
+
+        super(PSROIPoolhandle, self).__init__()
+        self.psroipool = PSROIPool(pooled_height=pooled_height,
+                                   pooled_width=pooled_width,
+                                   spatial_scale=spatial_scale,
+                                   group_size=group_size,
+                                   output_dim=output_dim)
+
+    def forward(self, feat, rois):
+        pooled_feat = self.psroipool(feat, rois)
+        return pooled_feat

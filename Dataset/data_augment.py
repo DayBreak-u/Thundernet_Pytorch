@@ -28,7 +28,7 @@ def _crop(image, boxes, labels):
     for _ in range(250):
 
 
-        if random.uniform(0, 1) <= 0.4:
+        if random.uniform(0, 1) <= 0.2:
             scale_w = 1.0
             scale_h = 1.0
         else:

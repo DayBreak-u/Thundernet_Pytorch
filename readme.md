@@ -6,7 +6,9 @@
 
 
 ## Update 
-### 20191108
+### 20191113
+add focal loss 
+
 
 ## Lib Prepare 
 ```sh

@@ -12,6 +12,7 @@ Snet_version = Configs.get("Snet_version")
 anchor_sizes = Configs.get("anchor_sizes")
 aspect_ratios = Configs.get("aspect_ratios")
 Multi_size = Configs.get("Multi_size")
+rpn_dense = Configs.get("rpn_dense")
 
 
 
@@ -66,7 +67,7 @@ class SNet(nn.Module):
             c5 = self.conv5(c5)
 
         Cglb_lat = self.avgpool(c5)
-        Cglb_lat = Cglb_lat.view(-1, self.channels[-1], 1, 1)
+        # Cglb_lat = Cglb_lat.view(-1, self.channels[-1], 1, 1)
 
         # x = self.fc(x)
 
@@ -125,9 +126,8 @@ class FastRCNNPredictor(torch.nn.Module):
 
 def get_thundernet():
 
-    onenlpHead = MLPHead(CEM_FILTER, representation_size)
-    # load a pre-trained model for classification and return
-    # only the features
+    anchor_generator = AnchorGenerator(sizes=anchor_sizes,
+                                       aspect_ratios=aspect_ratios)
     backbone = SNet(Snet_version)
 
     if len(backbone.channels) == 5:
@@ -138,27 +138,19 @@ def get_thundernet():
     # backbone = LightHead(CEM_SAM,CEM_FILTER,CEM_FILTER)
     backbone.out_channels = CEM_FILTER
 
-    rpn_head = RPN(CEM_FILTER, 256)
+    rpn_head = RPN(CEM_FILTER, rpn_dense)
+    sam_model = SAM(rpn_dense , CEM_FILTER)
 
 
+
+    roi_pooler = PsRoIAlign( output_size=7, sampling_ratio=2)
+    onenlpHead = MLPHead(CEM_FILTER, representation_size)
     box_predictor = FastRCNNPredictor(
         representation_size,
         num_classes)
 
-    anchor_generator = AnchorGenerator(sizes=anchor_sizes,
-                                       aspect_ratios=aspect_ratios)
-
-    # let's define what are the feature maps that we will
-    # use to perform the region of interest cropping, as well as
-    # the size of the crop after rescaling.
-    # if your backbone returns a Tensor, featmap_names is expected to
-    # be [0]. More generally, the backbone should return an
-    # OrderedDict[Tensor], and in featmap_names you can choose which
-    # feature maps to use.
-    roi_pooler = PsRoIAlign( output_size=7, sampling_ratio=2)
-
     model = FasterRCNN(backbone, num_classes=None, rpn_anchor_generator=anchor_generator, Multi_size=Multi_size ,
-                       box_roi_pool=roi_pooler, rpn_head=rpn_head,
+                       box_roi_pool=roi_pooler, rpn_head=rpn_head, sam_model = sam_model,
                        box_head=onenlpHead, box_predictor=box_predictor)
 
     return model

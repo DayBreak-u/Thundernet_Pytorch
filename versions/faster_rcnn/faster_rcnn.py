@@ -149,12 +149,12 @@ class FasterRCNN(GeneralizedRCNN):
                  rpn_post_nms_top_n_train=2000, rpn_post_nms_top_n_test=1000,
                  rpn_nms_thresh=0.6,
                  rpn_fg_iou_thresh=0.7, rpn_bg_iou_thresh=0.3,
-                 rpn_batch_size_per_image=256, rpn_positive_fraction=0.5,
+                 rpn_batch_size_per_image=50, rpn_positive_fraction=0.5,
                  # Box parameters
-                 box_roi_pool=None, box_head=None, box_predictor=None,
+                 sam_model  = None,box_roi_pool=None, box_head=None, box_predictor=None,
                  box_score_thresh=0.05, box_nms_thresh=0.45, box_detections_per_img=100,
-                 box_fg_iou_thresh=0.5, box_bg_iou_thresh=0.5,
-                 box_batch_size_per_image=512, box_positive_fraction=0.25,
+                 box_fg_iou_thresh=0.5, box_bg_iou_thresh=0.1,
+                 box_batch_size_per_image=100, box_positive_fraction=0.25,
                  bbox_reg_weights=None):
 
         if not hasattr(backbone, "out_channels"):
@@ -196,6 +196,7 @@ class FasterRCNN(GeneralizedRCNN):
 
         roi_heads = RoIHeads(
             # Box
+            sam_model ,
             box_roi_pool, box_head, box_predictor,
             box_fg_iou_thresh, box_bg_iou_thresh,
             box_batch_size_per_image, box_positive_fraction,
@@ -208,7 +209,7 @@ class FasterRCNN(GeneralizedRCNN):
             image_std = [0.229, 0.224, 0.225]
         transform = GeneralizedRCNNTransform( Multi_size, image_mean, image_std)
 
-        super(FasterRCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        super(FasterRCNN, self).__init__(backbone, rpn ,roi_heads, transform)
         self.transform = transform
 
 

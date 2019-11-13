@@ -121,35 +121,29 @@ class RPN(nn.Module):
         self.dw5_5 =  nn.Conv2d(in_channels, in_channels, kernel_size=5, stride=1, padding=2, groups=in_channels)
         self.bn0 = nn.BatchNorm2d(in_channels)
         self.con1x1 = nn.Conv2d(in_channels, f_channels, kernel_size=1)
-        self.bn1 = nn.BatchNorm2d(f_channels)
 
 
-        self.loc_conv = nn.Conv2d(f_channels,  self.num_anchors, kernel_size=1, stride=1,
+        self.rpn_cls_pred = nn.Conv2d(f_channels,  self.num_anchors, kernel_size=1, stride=1,
                                padding=0
                                )
-        self.rpn_cls_pred = nn.Conv2d(f_channels, 4 * self.num_anchors, kernel_size=1,
+        self.loc_conv = nn.Conv2d(f_channels, 4 * self.num_anchors, kernel_size=1,
                                    stride=1, padding=0
                                    )
 
 
-        for l in self.children():
-            torch.nn.init.normal_(l.weight, std=0.01)
-            torch.nn.init.constant_(l.bias, 0)
 
     def forward(self, x):
-
         logits = []
         bbox_reg = []
-
         x = self.dw5_5(x)
         x = self.bn0(x)
-        x = F.relu(x)
         x = self.con1x1(x)
-        x = self.bn1(x)
-        x = F.relu(x)
 
-        logits.append(self.loc_conv(x))
-        bbox_reg.append(self.rpn_cls_pred(x))
+        logits.append(self.rpn_cls_pred(x))
+        bbox_reg.append(self.loc_conv(x))
+
+
+
         return logits, bbox_reg , x
 
 

@@ -6,7 +6,26 @@ import json
 import cv2
 
 from config import Configs
+
+
 VOCROOT = Configs.get("VOCROOT")
+CLASSES  = Configs.get("CLASSES")
+
+
+count_class = {'person': 15576, 'chair': 4338, 'car': 4008, 'bottle': 2116, 'dog': 2079, 'bird': 1820,
+               'pottedplant': 1724, 'cat': 1616, 'boat': 1397, 'sheep': 1347, 'aeroplane': 1285, 'sofa': 1211,
+               'bicycle': 1208, 'tvmonitor': 1193, 'horse': 1156, 'motorbike': 1141, 'cow': 1058, 'diningtable': 1057,
+               'train': 984, 'bus': 909}
+
+
+def cal_repeat_time(labels):
+    labels = set(labels)
+    if 0 in labels:
+        return 1
+    min_number = np.inf
+    for label in labels:
+        min_number = min(min_number, count_class[CLASSES[label]])
+    return count_class["person"] // min_number // 2
 
 
 
@@ -31,12 +50,16 @@ def get_crowd(txt_path , type="train", vis=True):
                 annotation["filepath"] = path
                 annotation["bboxes"] = np.array(boxes)
                 annotation["labels"] = np.array(labels)
-                image_dat.append(annotation)
+                repeat_time = 1
+                # if type == "train":
+                #     repeat_time = cal_repeat_time(labels)
+                for _ in range(repeat_time):
+                    image_dat.append(annotation)
                 boxes = []
                 labels = []
                 annotation = {}
             path = line[1:].strip()
-            # path = txt_path.replace('label.txt','images/') + path
+
             path = os.path.join(VOCROOT, path)
         else:
             line = line.split(' ')
@@ -47,7 +70,7 @@ def get_crowd(txt_path , type="train", vis=True):
             class_id = label[4]
 
             boxes.append([int(x1),int(y1),int(x2),int(y2)])
-            labels.append(int(class_id))
+            labels.append(int(class_id) + 1  )
 
 
     return  image_dat

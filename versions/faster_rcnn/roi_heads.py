@@ -9,6 +9,8 @@ from torchvision.ops import roi_align
 
 from . import _utils as det_utils
 
+from .focalloss  import FocalLoss
+
 #
 # def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
 #     """
@@ -56,7 +58,7 @@ from . import _utils as det_utils
 #
 #     return classification_loss, box_loss
 
-
+FL = FocalLoss(num_class=21, alpha=0.25, gamma=2.0, balance_index=2)
 
 def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     """
@@ -73,20 +75,19 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
         box_loss (Tensor)
     """
 
+
     labels = torch.cat(labels, dim=0)
+
+    from collections import  Counter
+    # print(Counter(labels.cpu().numpy()))
+
+
     regression_targets = torch.cat(regression_targets, dim=0)
 
-    classification_loss = F.cross_entropy(class_logits, labels,reduce=True)
+    # classification_loss = F.cross_entropy(class_logits, labels,reduce=True)
+    classification_loss = FL(class_logits, labels)
 
-    # _, loss_idx = classification_loss.sort(0, descending=True)
-    #
-    # classification_loss = classification_loss[loss_idx]
-    #
-    # classification_loss = classification_loss[:500].mean()
 
-    # get indices that correspond to the regression targets for
-    # the corresponding ground truth labels, to be used with
-    # advanced indexing
     sampled_pos_inds_subset = torch.nonzero(labels > 0).squeeze(1)
     labels_pos = labels[sampled_pos_inds_subset]
     N, num_classes = class_logits.shape
@@ -95,9 +96,13 @@ def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     box_loss = F.smooth_l1_loss(
         box_regression[sampled_pos_inds_subset, labels_pos],
         regression_targets[sampled_pos_inds_subset],
-        reduction="sum",
+        reduction="mean",
     )
-    box_loss = box_loss / labels.numel()
+    # box_loss = box_loss / labels.numel()
+
+
+
+
 
     return classification_loss, box_loss 
 
@@ -374,6 +379,7 @@ def paste_masks_in_image(masks, boxes, img_shape, padding=1):
 
 class RoIHeads(torch.nn.Module):
     def __init__(self,
+                 sam_model,
                  box_roi_pool,
                  box_head,
                  box_predictor,
@@ -410,6 +416,8 @@ class RoIHeads(torch.nn.Module):
             bbox_reg_weights = (10., 10., 5., 5.)
         self.box_coder = det_utils.BoxCoder(bbox_reg_weights)
 
+
+        self.sam = sam_model
         self.box_roi_pool = box_roi_pool
         self.box_head = box_head
         self.box_predictor = box_predictor
@@ -572,7 +580,7 @@ class RoIHeads(torch.nn.Module):
 
         return all_boxes, all_scores, all_labels
 
-    def forward(self, features, proposals, image_shapes, targets=None):
+    def forward(self, features, rpn_out, proposals, image_shapes, targets=None):
         """
         Arguments:
             features (List[Tensor])
@@ -590,7 +598,11 @@ class RoIHeads(torch.nn.Module):
         if self.training:
             proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
 
-        box_features = self.box_roi_pool(features, proposals, image_shapes)
+
+        sam_features =  self.sam([features , rpn_out] )
+
+        box_features = self.box_roi_pool(sam_features, proposals, image_shapes)
+
         box_features = self.box_head(box_features)
         class_logits, box_regression = self.box_predictor(box_features)
 
@@ -605,6 +617,7 @@ class RoIHeads(torch.nn.Module):
             for i in range(num_images):
                 result.append(
                     dict(
+                        proposals = proposals[i],
                         boxes=boxes[i],
                         labels=labels[i],
                         scores=scores[i],

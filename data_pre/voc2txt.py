@@ -37,7 +37,7 @@ def convert_annotation(in_file,outfile):
             print(in_file)
             continue
         cls_id = index_map[cls]
-        print(cls_id)
+        # print(cls_id)
         xmlbox = obj.find('bndbox')
         b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text),
              float(xmlbox.find('ymax').text))
@@ -46,10 +46,10 @@ def convert_annotation(in_file,outfile):
         outfile.write("{} {} {} {} {}\n".format(x1,y1,w,h,cls_id))
 
 
-
+count = 0
 for ImageSet in ["VOC2007" , "VOC2012"]:
     set_root = os.path.join(ROOT,ImageSet)
-    print(ImageSet)
+
     for model in ["trainval","test"]:
         txt_path = os.path.join(set_root,"ImageSets/Main/{}.txt".format(model))
 
@@ -65,6 +65,7 @@ for ImageSet in ["VOC2007" , "VOC2012"]:
 
                 convert_annotation(in_file,list_file)
             except:
-                # print(image_id)
+
                 continue
+
         list_file.close()

@@ -6,7 +6,6 @@ Implements the Generalized R-CNN framework
 from collections import OrderedDict
 import torch
 from torch import nn
-from versions.nn.modules import SAM
 
 class GeneralizedRCNN(nn.Module):
     """
@@ -27,7 +26,7 @@ class GeneralizedRCNN(nn.Module):
         self.backbone = backbone
         self.rpn = rpn
         self.roi_heads = roi_heads
-        self.Sam = SAM(256,245)
+        # self.Sam = sam_mode
 
     def forward(self, images, targets=None):
         """
@@ -51,9 +50,9 @@ class GeneralizedRCNN(nn.Module):
         #     features = OrderedDict([(0, features)])
         proposals, proposal_losses ,rpn_out = self.rpn(images, features, targets)
 
-        features = self.Sam([features,rpn_out])
+        # features_sam = self.Sam([features,rpn_out])
 
-        detections, detector_losses = self.roi_heads(features, proposals, images.image_sizes, targets)
+        detections, detector_losses = self.roi_heads(features, rpn_out,  proposals, images.image_sizes, targets)
         detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
 
         losses = {}
@@ -63,4 +62,4 @@ class GeneralizedRCNN(nn.Module):
         if self.training:
             return losses
 
-        return detections
+        return  detections

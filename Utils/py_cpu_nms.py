@@ -13,7 +13,12 @@ def py_cpu_nms(dets, thresh):
     y1 = dets[:, 1]
     x2 = dets[:, 2]
     y2 = dets[:, 3]
-    scores = dets[:, 4]
+    try:
+        scores = dets[:, 4]
+    except:
+        scores = dets[:, 3]
+        scores[:] = 1
+
 
     areas = (x2 - x1 + 1) * (y2 - y1 + 1)
     order = scores.argsort()[::-1]

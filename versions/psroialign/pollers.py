@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 
-from versions.psroialign.psroialign import PSROIAlignhandle
+from versions.psroialign.psroialign import PSROIAlignhandle , PSROIPoolhandle
 from config import  Configs
 
 CEM_FILTER = Configs.get("CEM_FILTER")
@@ -37,7 +37,7 @@ class PsRoIAlign(nn.Module):
         self.sampling_ratio = sampling_ratio
         self.output_size = tuple(output_size)
         self.scales = spatial_scale
-        self.map_levels = None
+
 
     def convert_to_roi_format(self, boxes):
         concat_boxes = torch.cat(boxes, dim=0)
@@ -71,8 +71,11 @@ class PsRoIAlign(nn.Module):
 
         rois = self.convert_to_roi_format(boxes)
 
+
         roi_align = PSROIAlignhandle(sampling_ratio=self.sampling_ratio, spatial_scale=self.scales, roi_size=7,
                                       pooled_dim=CEM_FILTER//(7*7))
+
+
         return roi_align(
             x, rois
         )

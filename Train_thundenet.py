@@ -13,12 +13,12 @@ parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--training_dataset', default= Configs.get("train_txts") , help='Training dataset directory')
 parser.add_argument('--val_dataset', default= Configs.get("val_txts") , help='Valing dataset directory')
 parser.add_argument('--network', default= Configs.get("Snet_version"), type=int ,  help='49 146 or 535')
-parser.add_argument('--num_workers', default=4, type=int, help='Number of workers used in dataloading')
+parser.add_argument('--num_workers', default=8, type=int, help='Number of workers used in dataloading')
 parser.add_argument('--batchsize' , default=16, type=int, help='batchsize ')
-parser.add_argument('--lr', '--learning-rate', default=1e-2, type=float, help='initial learning rate')
+parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float, help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
-# parser.add_argument('--resume_net_path', default="./save_weights/efficient_rcnn_100.pth", help='resume net path  for retraining')
-parser.add_argument('--resume_net_path', default=None, help='resume net path  for retraining')
+parser.add_argument('--resume_net_path', default="./save_weights/efficient_rcnn_2.pth", help='resume net path  for retraining')
+# parser.add_argument('--resume_net_path', default=None, help='resume net path  for retraining')
 parser.add_argument('--weight_decay', default=5e-3, type=float, help='Weight decay for SGD')
 parser.add_argument('--step_lr', default=[100,150,250], type=float, help='step  for SGD')
 parser.add_argument('--gamma', default=0.1, type=float, help='Gamma update for SGD')
@@ -47,7 +47,7 @@ train_dataset = VocGenerator(path= args.training_dataset, type="train", transfor
 validation_dataset = VocGenerator(path=args.val_dataset, type="validation", transform=get_transform(train=False))
 
 train_loader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True, num_workers=args.num_workers, collate_fn=collate_fn)
-test_loader = DataLoader(validation_dataset, batch_size=args.batchsize, shuffle=False, num_workers=args.num_workers, collate_fn=collate_fn)
+test_loader = DataLoader(validation_dataset, batch_size=args.batchsize // 2, shuffle=False, num_workers=args.num_workers, collate_fn=collate_fn)
 
 
 
