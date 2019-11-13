@@ -7,8 +7,8 @@
 
 ## Update 
 ### 20191113
-add focal loss 
-
+ - add focal loss 
+ - add more data aug
 
 ## Lib Prepare 
 ```sh
@@ -35,8 +35,7 @@ python3 Testing.py
 
 
 ## TODO LIST
-
- - add more data aug
+ 
  - add voc test result
  - add coco train and test
  - add NCNN inference
