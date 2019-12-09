@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file:///Volumes/huiyu2_pro/Project/visual_models/Fd/Face-Detector-1MB-with-landmark/.idea/Face-Detector-1MB-with-landmark.iml" filepath="/Volumes/huiyu2_pro/Project/visual_models/Fd/Face-Detector-1MB-with-landmark/.idea/Face-Detector-1MB-with-landmark.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../thundernetbylightheadrcnn/.idea/LightHeadRCNN.iml" filepath="$PROJECT_DIR$/../thundernetbylightheadrcnn/.idea/LightHeadRCNN.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Thundernet_Pytorch.iml" filepath="$PROJECT_DIR$/.idea/Thundernet_Pytorch.iml" />
+    </modules>
+  </component>
+</project>
