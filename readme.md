@@ -1,5 +1,6 @@
 # Thundernet_Pytorch
-I'll push the snet146 imagenet pretrained weight soon
+## 20191210更新
+add snet146 pretrained model 
 
 ## Requirements
 * pytorch 1.2.0

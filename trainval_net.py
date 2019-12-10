@@ -130,12 +130,12 @@ def parse_args():
                         default=0.1,
                         type=float)
 
-    # set training session
-    parser.add_argument('--s',
-                        dest='session',
-                        help='training session',
-                        default=1,
-                        type=int)
+    # set pretrained model;
+    parser.add_argument('--pre',
+                        dest='pre',
+                        help='pretrained model',
+                        default=None,
+                        type=str)
 
     # resume trained model
     parser.add_argument('--r',
@@ -309,7 +309,7 @@ if __name__ == '__main__':
     # initilize the network here.
 
     layer = int(args.net.split("_")[1])
-    _RCNN = snet(imdb.classes,layer , pretrained=False, class_agnostic=args.class_agnostic,)
+    _RCNN = snet(imdb.classes,layer , pretrained_path =args.pre, class_agnostic=args.class_agnostic,)
 
 
     _RCNN.create_architecture()
@@ -470,7 +470,7 @@ if __name__ == '__main__':
 
             save_name = os.path.join(
                     output_dir,
-                    'thundernet_epoch_{}.pth'.format( args.checkepoch,
+                    'thundernet_epoch_{}.pth'.format( epoch,
                                                   ))
             save_checkpoint(
                 {
@@ -485,7 +485,7 @@ if __name__ == '__main__':
 
             save_name = os.path.join(
                     output_dir,
-                    'thundernet_epoch_{}.pth'.format(args.checkepoch,
+                    'thundernet_epoch_{}.pth'.format(epoch,
                                                  ))
             save_checkpoint(
                 {

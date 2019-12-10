@@ -133,11 +133,11 @@ class snet(_fasterRCNN):
     def __init__(self,
                  classes,
                  layer ,
-                 pretrained=True,
+                 pretrained_path=None,
                  class_agnostic=False,
                 ):
-        self.model_path = '/mnt/data1/yanghuiyu/project/imagenet/Snet/checkpoints/model_best.pth.tar'
-        self.pretrained = pretrained
+        self.pretrained_path = pretrained_path
+
         self.class_agnostic = class_agnostic
 
         self.dout_base_model = 256
@@ -151,7 +151,7 @@ class snet(_fasterRCNN):
                              compact_mode=True)
 
     def _init_modules(self):
-        snet = SnetExtractor(self.layer, self.model_path )
+        snet = SnetExtractor(self.layer, self.pretrained_path)
 
 
 
