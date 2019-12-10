@@ -1,4 +1,5 @@
 # Thundernet_Pytorch
+I'll push the snet146 imagenet prepare weight sonn
 
 ## Requirements
 * pytorch 1.2.0
