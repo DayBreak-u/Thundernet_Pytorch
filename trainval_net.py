@@ -165,7 +165,7 @@ def parse_args():
 
 
 
-    # set eval session
+    # set eval_interval
 
     parser.add_argument('--eval_interval',
                         dest='eval_interval',
@@ -474,7 +474,6 @@ if __name__ == '__main__':
                                                   ))
             save_checkpoint(
                 {
-                    'session': args.session,
                     'epoch': epoch + 1,
                     'model': _RCNN.module.state_dict(),
                     'optimizer': optimizer.state_dict(),
@@ -489,7 +488,6 @@ if __name__ == '__main__':
                                                  ))
             save_checkpoint(
                 {
-                    'session': args.session,
                     'epoch': epoch + 1,
                     'model': _RCNN.state_dict(),
                     'optimizer': optimizer.state_dict(),
