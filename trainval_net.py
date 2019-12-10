@@ -346,7 +346,7 @@ if __name__ == '__main__':
                                                   ))
         print("loading checkpoint %s" % (load_name))
         checkpoint = torch.load(load_name)
-        args.session = checkpoint['session']
+
         args.start_epoch = checkpoint['epoch']
         _RCNN.load_state_dict(checkpoint['model'],strict=False)
         # optimizer.load_state_dict(checkpoint['optimizer'])
