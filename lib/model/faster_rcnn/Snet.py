@@ -10,10 +10,11 @@ class SnetExtractor(nn.Module):
         535: [48, 248, 496, 992],
     }
 
-    def __init__(self,  version = 146 ,  **kwargs):
+    def __init__(self,  version = 146 ,model_path=None ,  **kwargs):
 
         super(SnetExtractor,self).__init__()
         num_layers = [4, 8, 4]
+        self.model_path = model_path
 
         self.num_layers = num_layers
         channels = self.cfg[version]
@@ -63,28 +64,54 @@ class SnetExtractor(nn.Module):
 
 
     def _initialize_weights(self):
-        for name, m in self.named_modules():
-            if isinstance(m, nn.Conv2d):
-                if 'first' in name:
+        if  self.model_path is not None:
+
+            print("Loading pretrained weights from %s" % (self.model_path))
+            if torch.cuda.is_available():
+                state_dict = torch.load(self.model_path)["state_dict"]
+            else:
+                state_dict = torch.load(
+                    self.model_path, map_location=lambda storage, loc: storage)["state_dict"]
+            keys = []
+            for k, v in state_dict.items():
+                keys.append(k)
+            for k in keys:
+                state_dict[k.replace("module.", "")] = state_dict.pop(k)
+
+            self.load_state_dict({
+                k: v
+                for k, v in state_dict.items() if k in self.state_dict()
+            })
+
+            for para in self.conv1.parameters():
+                para.requires_grad = False
+            print('extractor conv1 freezed')
+            for para in self.stage1.parameters():
+                para.requires_grad = False
+            print('extractor res2 freezed')
+        else:
+            for name, m in self.named_modules():
+                if isinstance(m, nn.Conv2d):
+                    if 'first' in name:
+                        nn.init.normal_(m.weight, 0, 0.01)
+                    else:
+                        nn.init.normal_(m.weight, 0, 1.0 / m.weight.shape[1])
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0.0001)
+                    nn.init.constant_(m.running_mean, 0)
+                elif isinstance(m, nn.BatchNorm1d):
+                    nn.init.constant_(m.weight, 1)
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0.0001)
+                    nn.init.constant_(m.running_mean, 0)
+                elif isinstance(m, nn.Linear):
                     nn.init.normal_(m.weight, 0, 0.01)
-                else:
-                    nn.init.normal_(m.weight, 0, 1.0 / m.weight.shape[1])
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.0001)
-                nn.init.constant_(m.running_mean, 0)
-            elif isinstance(m, nn.BatchNorm1d):
-                nn.init.constant_(m.weight, 1)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0.0001)
-                nn.init.constant_(m.running_mean, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
 
@@ -106,10 +133,10 @@ class snet(_fasterRCNN):
     def __init__(self,
                  classes,
                  layer ,
-                 pretrained=False,
+                 pretrained=True,
                  class_agnostic=False,
                 ):
-        self.model_path = ''
+        self.model_path = '/mnt/data1/yanghuiyu/project/imagenet/Snet/checkpoints/model_best.pth.tar'
         self.pretrained = pretrained
         self.class_agnostic = class_agnostic
 
@@ -124,27 +151,17 @@ class snet(_fasterRCNN):
                              compact_mode=True)
 
     def _init_modules(self):
-        snet = SnetExtractor(self.layer)
+        snet = SnetExtractor(self.layer, self.model_path )
 
-        if self.pretrained == True:
-            print("Loading pretrained weights from %s" % (self.model_path))
-            if torch.cuda.is_available():
-                state_dict = torch.load(self.model_path)
-            else:
-                state_dict = torch.load(
-                    self.model_path, map_location=lambda storage, loc: storage)
 
-            snet.load_state_dict({
-                k: v
-                for k, v in state_dict.items() if k in snet.state_dict()
-            })
 
         # Build snet.
         self.RCNN_base = snet
 
         # Fix Layers
         # if self.pretrained:
-        #     for layer in range(len(self.RCNN_base)):
+        #     for layer  in self.RCNN_base:
+        #         print(layer)
         #         for p in self.RCNN_base[layer].parameters():
         #             p.requires_grad = False
 
