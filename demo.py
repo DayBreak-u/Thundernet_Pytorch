@@ -220,7 +220,7 @@ if __name__ == '__main__':
 
 
 
-    _RCNN = snet(pascal_classes, pretrained=False, class_agnostic=args.class_agnostic)
+    _RCNN = snet(pascal_classes, pretrained_path= None  , class_agnostic=args.class_agnostic)
 
 
     _RCNN.create_architecture()
