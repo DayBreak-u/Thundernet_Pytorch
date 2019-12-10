@@ -1,5 +1,5 @@
 # Thundernet_Pytorch
-## 20191210更新
+## 20191210 update
 add snet146 pretrained model 
 
 ## Requirements
