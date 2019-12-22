@@ -49,7 +49,6 @@ class Detection(data.Dataset):
             self.transform = SSDAugmentation(size, cfg.PIXEL_MEANS)
         else:
             size  = cfg.TEST.SIZE
-            self.transform = BaseTransform(size, cfg.PIXEL_MEANS)
 
         roidb = self._roidb[index]
         im  = cv2.imread(roidb['image'])
