@@ -44,9 +44,9 @@ class Detection(data.Dataset):
         """
         if self.training:
             index , size = index
-
-
-        self.transform = SSDAugmentation(size,cfg.PIXEL_MEANS)
+            self.transform = SSDAugmentation(size,cfg.PIXEL_MEANS)
+        else:
+            self.transform = SSDAugmentation(cfg.TEST.SIZE, cfg.PIXEL_MEANS)
         roidb = self._roidb[index]
         im  = cv2.imread(roidb['image'])
         if len(im.shape) == 2:
