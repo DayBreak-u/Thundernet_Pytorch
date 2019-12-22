@@ -14,7 +14,9 @@ from psroialign.psroialign import PSROIAlignhandle,PSROIPoolhandle
 
 from .modules import  RPN,SAM
 from model.utils.config import cfg
+# from model.rpn.rpn import _RPN
 from model.rpn.rpn import _RPN
+# from model.rpn.centernet_rpn import _RPN
 from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
 from model.loss.losses import _smooth_l1_loss
 
@@ -54,8 +56,8 @@ class _fasterRCNN(nn.Module):
         self.pre_roi_time = None
         self.roi_pooling_time = None
         self.subnet_time = None
-        self.psroiAlign =  PSROIAlignhandle(1./16, 7,2, 5)
-        self.psroiPool =  PSROIPoolhandle(7,7,1./16,7,5)
+        self.psroiAlign =  PSROIAlignhandle(1./cfg.FEAT_STRIDE, 7,2, 5)
+        self.psroiPool =  PSROIPoolhandle(7,7,1./cfg.FEAT_STRIDE,7,5)
 
 
 
@@ -65,13 +67,20 @@ class _fasterRCNN(nn.Module):
     def _roi_align_layer(self, bottom, rois):
         return self.psroiAlign.forward(bottom, rois)
 
-    def forward(self, im_data, im_info, gt_boxes, num_boxes):
+    def forward(self, im_data, im_info, gt_boxes, num_boxes,
+                # hm,reg_mask,wh,offset,ind
+                ):
         batch_size = im_data.size(0)
 
 
         im_info = im_info.data
         gt_boxes = gt_boxes.data
         num_boxes = num_boxes.data
+        # hm = hm.data
+        # reg_mask = reg_mask.data
+        # wh = wh.data
+        # offset = offset.data
+        # ind = ind.data
 
         # feed image data to base model to obtain base feature map
         start = time.time()
@@ -81,7 +90,9 @@ class _fasterRCNN(nn.Module):
         rpn_feat= self.rpn(basefeat)
 
 
+        # rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(rpn_feat, im_info, gt_boxes, num_boxes,hm,reg_mask,wh,offset,ind)
         rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(rpn_feat, im_info, gt_boxes, num_boxes)
+
         rpn_time = time.time()
         self.rpn_time = rpn_time - start
         # if it is training phrase, then use ground trubut bboxes for refining
@@ -147,6 +158,9 @@ class _fasterRCNN(nn.Module):
         if self.training:
             # classification loss
             # RCNN_loss_cls = OHEM_loss(cls_score,rois_label)
+            # from collections import  Counter
+            # label = rois_label.cpu().numpy()
+            # print(Counter(label))
 
             loss = -F.log_softmax(cls_score, dim=1)[:, 0]
             mask, num_pos = hard_negative_mining(loss, rois_label)
@@ -155,6 +169,7 @@ class _fasterRCNN(nn.Module):
 
 
             # bounding box regression L1 loss
+
             RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
             RCNN_loss_bbox = RCNN_loss_bbox * 2  # "to balance multi-task training"
 
@@ -183,9 +198,14 @@ class _fasterRCNN(nn.Module):
                 m.weight.data.normal_(mean, stddev)
                 m.bias.data.zero_()
 
-        # normal_init(self.RCNN_rpn.RPN_Conv, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_rpn.RPN_bbox_pred, 0, 0.01, cfg.TRAIN.TRUNCATED)
+
+        # normal_init(self.RCNN_rpn.RPN_hm_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.RCNN_rpn.PRN_wh_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
+        # normal_init(self.RCNN_rpn.PRN_offset_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
+
+
         normal_init(self.RCNN_cls_score, 0, 0.01, cfg.TRAIN.TRUNCATED)
         normal_init(self.RCNN_bbox_pred, 0, 0.001, cfg.TRAIN.TRUNCATED)
 

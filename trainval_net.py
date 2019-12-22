@@ -1,8 +1,4 @@
-# --------------------------------------------------------
-# Pytorch multi-GPU Faster R-CNN
-# Licensed under The MIT License [see LICENSE for details]
-# Written by Jiasen Lu, Jianwei Yang, based on code from Ross Girshick
-# --------------------------------------------------------
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -17,18 +13,26 @@ import pprint
 import pdb
 import time
 import torch
+from torch.utils.data import  RandomSampler
 from torch.autograd import Variable
 import torch.nn as nn
 from torch.utils.data.sampler import Sampler
-
+import random
 from roi_data_layer.roidb import combined_roidb
-from roi_data_layer.roibatchLoader import roibatchLoader
-from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
+
+from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir,_merge_a_into_b
 from model.utils.net_utils import weights_normal_init, save_net, load_net, \
     adjust_learning_rate, save_checkpoint, clip_gradient
 
 from model.faster_rcnn.Snet import snet
 from test_net import eval_result
+# from model.faster_rcnn.resnet import resnet
+
+from roi_data_layer.roibatchLoader  import Detection
+from roi_data_layer.augmentation import SSDAugmentation
+
+
+
 
 def parse_args():
     """
@@ -177,34 +181,64 @@ def parse_args():
     return args
 
 
-class sampler(Sampler):
-    def __init__(self, train_size, batch_size):
-        self.num_data = train_size
-        self.num_per_batch = int(train_size / batch_size)
+
+
+class BatchSampler(Sampler):
+    r"""Wraps another sampler to yield a mini-batch of indices.
+
+    Args:
+        sampler (Sampler): Base sampler.
+        batch_size (int): Size of mini-batch.
+        drop_last (bool): If ``True``, the sampler will drop the last batch if
+            its size would be less than ``batch_size``
+
+    Example:
+        >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=False))
+        [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]
+        >>> list(BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=True))
+        [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+    """
+
+    def __init__(self, sampler, batch_size, drop_last = False,size = 320):
+        self.size  = size
+        if not isinstance(sampler, Sampler):
+            raise ValueError("sampler should be an instance of "
+                             "torch.utils.data.Sampler, but got sampler={}"
+                             .format(sampler))
+        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or \
+                batch_size <= 0:
+            raise ValueError("batch_size should be a positive integer value, "
+                             "but got batch_size={}".format(batch_size))
+        if not isinstance(drop_last, bool):
+            raise ValueError("drop_last should be a boolean value, but got "
+                             "drop_last={}".format(drop_last))
+        self.sampler = sampler
         self.batch_size = batch_size
-        self.range = torch.arange(0, batch_size).view(1, batch_size).long()
-        self.leftover_flag = False
-        if train_size % batch_size:
-            self.leftover = torch.arange(self.num_per_batch * batch_size,
-                                         train_size).long()
-            self.leftover_flag = True
+        self.drop_last = drop_last
+        self.count_change_size   = 0
+
 
     def __iter__(self):
-        rand_num = torch.randperm(self.num_per_batch).view(-1,
-                                                           1) * self.batch_size
-        self.rand_num = rand_num.expand(self.num_per_batch,
-                                        self.batch_size) + self.range
+        batch = []
 
-        self.rand_num_view = self.rand_num.view(-1)
-
-        if self.leftover_flag:
-            self.rand_num_view = torch.cat((self.rand_num_view, self.leftover),
-                                           0)
-
-        return iter(self.rand_num_view)
+        for idx in self.sampler:
+            batch.append([idx,self.size])
+            if len(batch) == self.batch_size:
+                self.count_change_size += 1
+                yield batch
+                batch = []
+                if self.count_change_size  % 50 == 0:
+                    self.size = random.choice(cfg.TRAIN.SIZE)
+                    print("change train size to ({},{})".format(self.size,self.size))
+        self.count_change_size = 0
+        if len(batch) > 0 and not self.drop_last:
+            yield batch
 
     def __len__(self):
-        return self.num_data
+        if self.drop_last:
+            return len(self.sampler) // self.batch_size
+        else:
+            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
 
 
 if __name__ == '__main__':
@@ -229,8 +263,8 @@ if __name__ == '__main__':
             'MAX_NUM_GT_BOXES', '20'
         ]
     elif args.dataset == "coco":
-        args.imdb_name = "tian2017"
-        args.imdbval_name = "val2017"
+        args.imdb_name = "coco_2017_train"
+        args.imdbval_name = "coco_2017_val"
         args.set_cfgs = [
             'ANCHOR_SCALES', '[2, 4 , 8, 16, 32]', 'ANCHOR_RATIOS', '[1.0/2 , 3.0/4 , 1 , 4.0/3 , 2 ]',
             'MAX_NUM_GT_BOXES', '50'
@@ -259,7 +293,8 @@ if __name__ == '__main__':
     # -- Note: Use validation set and disable the flipped to enable faster loading.
     cfg.TRAIN.USE_FLIPPED = True
     cfg.USE_GPU_NMS = args.cuda
-    imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
+    imdb, roidb = combined_roidb(args.imdb_name)
+    # imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
     train_size = len(roidb)
 
     print('{:d} roidb entries'.format(len(roidb)))
@@ -268,19 +303,27 @@ if __name__ == '__main__':
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    sampler_batch = sampler(train_size, args.batch_size)
 
-    dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                             imdb.num_classes, training=True)
+
+    # dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
+    #                          imdb.num_classes, training=True)
+
+    # dataset = roibatchLoader(roidb , imdb.num_classes, training=True)
+
+    dataset = Detection(roidb,num_classes= imdb.num_classes,
+                            transform=SSDAugmentation(cfg.TRAIN.SIZE,
+                                                      cfg.PIXEL_MEANS))
+    sampler_batch = BatchSampler(RandomSampler(dataset), args.batch_size)
+
 
     dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=args.batch_size,
-                                             sampler=sampler_batch,
-                                             num_workers=args.num_workers)
+                                             # batch_size=args.batch_size,
+                                             batch_sampler=sampler_batch ,
+                                             # shuffle=True,
+                                             num_workers=args.num_workers,
+                                                )
 
 
-
-    val_data_iter = iter(dataloader)
 
     # initilize the tensor holder here.
     im_data = torch.FloatTensor(1)
@@ -295,11 +338,16 @@ if __name__ == '__main__':
         num_boxes = num_boxes.cuda()
         gt_boxes = gt_boxes.cuda()
 
+
     # make variable
     im_data = Variable(im_data)
     im_info = Variable(im_info)
     num_boxes = Variable(num_boxes)
     gt_boxes = Variable(gt_boxes)
+
+
+
+
 
     if args.cuda:
         cfg.CUDA = True
@@ -309,13 +357,14 @@ if __name__ == '__main__':
     # initilize the network here.
 
     layer = int(args.net.split("_")[1])
+    print(imdb.classes)
     _RCNN = snet(imdb.classes,layer , pretrained_path =args.pre, class_agnostic=args.class_agnostic,)
 
 
     _RCNN.create_architecture()
 
     lr = cfg.TRAIN.LEARNING_RATE
-    lr = args.lr
+
     # tr_momentum = cfg.TRAIN.MOMENTUM
     # tr_momentum = args.momentum
 
@@ -333,12 +382,13 @@ if __name__ == '__main__':
                 }]
 
     if args.optimizer == "adam":
-        lr = lr * 0.1
+        args.lr = args.lr * 0.1
         optimizer = torch.optim.Adam(params)
 
     elif args.optimizer == "sgd":
         optimizer = torch.optim.SGD(params, momentum=cfg.TRAIN.MOMENTUM)
 
+    lr = args.lr
     if args.resume:
         load_name = os.path.join(
                 output_dir,
@@ -372,9 +422,10 @@ if __name__ == '__main__':
         # from torch.utils.tensorboard import SummaryWriter
         logger = SummaryWriter(args.logdir)
 
+    warm  = True
     for epoch in range(args.start_epoch, args.max_epochs + 1):
         # setting to train mode
-
+        _RCNN.train()
         loss_temp = 0
         start = time.time()
 
@@ -386,13 +437,32 @@ if __name__ == '__main__':
         if epoch % args.eval_interval == 0  and epoch>0:
             eval_result(args, logger, epoch-1,output_dir)
 
-        _RCNN.train()
+
 
 
         data_iter = iter(dataloader)
-        for step in range(iters_per_epoch):
-            data = next(data_iter)
 
+        if epoch == 0:
+            adjust_learning_rate(optimizer, 0.0001)
+            lr *= 0.0001
+
+        for step in range(iters_per_epoch):
+
+            # if step%5==0:
+            #     scale = random.choice([320,480,640])
+            #     GlobalVar.set_sacle(scale)
+                # print(data_iter.dataset.scale)
+
+            if step % 100 == 0 and step > 0 and epoch == 0 and warm:
+                adjust_learning_rate(optimizer,10)
+                lr *= 10
+
+                if lr  >= args.lr - 0.00001:
+                    warm = False
+
+            data = next(data_iter)
+            # pdb.set_trace()
+            # hm, reg_mask, wh
             with torch.no_grad():
                 im_data.resize_(data[0].size()).copy_(data[0])
                 im_info.resize_(data[1].size()).copy_(data[1])
@@ -400,12 +470,15 @@ if __name__ == '__main__':
                 num_boxes.resize_(data[3].size()).copy_(data[3])
 
 
+
             _RCNN.zero_grad()
             time_measure, \
             rois, cls_prob, bbox_pred, \
             rpn_loss_cls, rpn_loss_box, \
             RCNN_loss_cls, RCNN_loss_bbox, \
-            rois_label = _RCNN(im_data, im_info, gt_boxes, num_boxes)
+            rois_label = _RCNN(im_data, im_info, gt_boxes, num_boxes,
+                               # hm,reg_mask,wh,offset,ind
+                               )
 
             loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
                    + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
@@ -440,6 +513,9 @@ if __name__ == '__main__':
 
                 print("[epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e, rpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
                     % (epoch, step, iters_per_epoch, loss_temp, lr, loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
+                # scale = random.choice([256, 320, 480])
+                # cfg.TRAIN.SCALES = [scale]
+                # print("change SCALE:{}".format(scale))
                 # print("[session %d][epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e" \
                 #       % (args.session, epoch, step, iters_per_epoch, loss_temp, lr))
                 # print("\t\tfg/bg=(%d/%d), time cost: %.3f sec" %

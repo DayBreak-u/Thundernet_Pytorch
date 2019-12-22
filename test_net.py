@@ -1,8 +1,3 @@
-# --------------------------------------------------------
-# Pytorch Multi-GPU Faster R-CNN
-# Licensed under The MIT License [see LICENSE for details]
-# Written by Lichao Wang, based on code from Ross Girshick, Jiasen Lu, Jianwei Yang
-# --------------------------------------------------------
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -24,7 +19,7 @@ from torchvision import transforms as trans
 # import torch._utils as utils
 import pickle
 from roi_data_layer.roidb import combined_roidb
-from roi_data_layer.roibatchLoader import roibatchLoader
+
 from model.utils.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from model.rpn.bbox_transform import clip_boxes
 from torchvision.ops import nms
@@ -34,7 +29,9 @@ from model.faster_rcnn.Snet import snet
 from PIL import  Image
 # import pdb
 from utils import  color_list
-
+from roi_data_layer.utils import BaseTransform
+from roi_data_layer.roibatchLoader import Detection
+from external.nms import soft_nms
 try:
     xrange  # Python 2
 except NameError:
@@ -171,25 +168,40 @@ def eval_result(args,logger,epoch,output_dir):
 
 
 
-
     im_data = torch.FloatTensor(1)
     im_info = torch.FloatTensor(1)
     num_boxes = torch.LongTensor(1)
     gt_boxes = torch.FloatTensor(1)
-
+    # hm = torch.FloatTensor(1)
+    # reg_mask = torch.LongTensor(1)
+    # wh = torch.FloatTensor(1)
+    # offset = torch.FloatTensor(1)
+    # ind = torch.LongTensor(1)
     # ship to cuda
     if args.cuda:
         im_data = im_data.cuda()
         im_info = im_info.cuda()
         num_boxes = num_boxes.cuda()
         gt_boxes = gt_boxes.cuda()
+        # hm = hm.cuda()
+        # reg_mask = reg_mask.cuda()
+        # wh = wh.cuda()
+        # offset = offset.cuda()
+        # ind = ind.cuda()
 
-    # make variable (PyTorch 0.4.0+)
+    # make variable
     with torch.no_grad():
         im_data = Variable(im_data)
         im_info = Variable(im_info)
         num_boxes = Variable(num_boxes)
         gt_boxes = Variable(gt_boxes)
+        # hm = Variable(hm)
+        # reg_mask = Variable(reg_mask)
+        # wh = Variable(wh)
+        # offset = Variable(offset)
+        # ind = Variable(ind)
+
+
 
     if args.cuda:
         cfg.CUDA = True
@@ -213,8 +225,13 @@ def eval_result(args,logger,epoch,output_dir):
                  for _ in xrange(imdb.num_classes)]
 
     output_dir = get_output_dir(imdb, save_name)
-    dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                             imdb.num_classes, training=False, normalize=False)
+    # dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
+    #                          imdb.num_classes, training=False, normalize=False)
+    # dataset = roibatchLoader(roidb, imdb.num_classes, training=False)
+    dataset = Detection(roidb, num_classes=imdb.num_classes,
+                        transform=BaseTransform(cfg.TEST.SIZE,
+                                                      cfg.PIXEL_MEANS),training=False)
+
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=args.batch_size,
                                              shuffle=False,
@@ -240,6 +257,11 @@ def eval_result(args,logger,epoch,output_dir):
             im_info.resize_(data[1].size()).copy_(data[1])
             gt_boxes.resize_(data[2].size()).copy_(data[2])
             num_boxes.resize_(data[3].size()).copy_(data[3])
+            # hm.resize_(data[4].size()).copy_(data[4])
+            # reg_mask.resize_(data[5].size()).copy_(data[5])
+            # wh.resize_(data[6].size()).copy_(data[6])
+            # offset.resize_(data[7].size()).copy_(data[7])
+            # ind.resize_(data[8].size()).copy_(data[8])
 
         det_tic = time.time()
         with torch.no_grad():
@@ -247,7 +269,9 @@ def eval_result(args,logger,epoch,output_dir):
             rois, cls_prob, bbox_pred, \
             rpn_loss_cls, rpn_loss_box, \
             RCNN_loss_cls, RCNN_loss_bbox, \
-            rois_label = _RCNN(im_data, im_info, gt_boxes, num_boxes)
+            rois_label = _RCNN(im_data, im_info, gt_boxes, num_boxes,
+                               # hm,reg_mask,wh,offset,ind
+                               )
 
         scores = cls_prob.data
         boxes = rois.data[:, :, 1:5]
@@ -272,7 +296,12 @@ def eval_result(args,logger,epoch,output_dir):
             # Simply repeat the boxes, once for each class
             pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-        pred_boxes /= data[1][0][2].item()
+        # pred_boxes /= data[1][0][2].item()
+        pred_boxes[:,:,0::2] /= data[1][0][2].item()
+        pred_boxes[:,:,1::2] /= data[1][0][3].item()
+
+
+
 
         scores = scores.squeeze()
         pred_boxes = pred_boxes.squeeze()
@@ -298,9 +327,16 @@ def eval_result(args,logger,epoch,output_dir):
                 cls_dets = cls_dets[order]
                 keep = nms(cls_boxes[order, :], cls_scores[order],
                            cfg.TEST.NMS)
+
+
+                # keep = soft_nms(cls_dets.cpu().numpy(), Nt=0.5, method=2)
+                # keep = torch.as_tensor(keep, dtype=torch.long)
+
+
+
                 cls_dets = cls_dets[keep.view(-1).long()]
                 if vis:
-                    vis_detections(im2show, imdb.classes[j], color_list[j].tolist()  ,
+                    vis_detections(im2show, imdb.classes[j], color_list[j-1].tolist()  ,
                                              cls_dets.cpu().numpy(), 0.6)
                 all_boxes[j][i] = cls_dets.cpu().numpy()
             else:

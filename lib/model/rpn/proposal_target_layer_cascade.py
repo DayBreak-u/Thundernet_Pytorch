@@ -42,6 +42,8 @@ class _ProposalTargetLayer(nn.Module):
             np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
+
+
         labels, rois, bbox_targets, bbox_inside_weights = self._sample_rois_pytorch(
             all_rois, gt_boxes, fg_rois_per_image, rois_per_image,
             self._num_classes)
@@ -83,7 +85,9 @@ class _ProposalTargetLayer(nn.Module):
                 continue
             inds = torch.nonzero(clss[b] > 0).view(-1)
             for i in range(inds.numel()):
+
                 ind = inds[i]
+
                 bbox_targets[b, ind, :] = bbox_target_data[b, ind, :]
                 bbox_inside_weights[b, ind, :] = self.BBOX_INSIDE_WEIGHTS
 

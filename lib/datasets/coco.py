@@ -101,8 +101,9 @@ class coco(imdb):
     """
     # Example image path for index=119993:
     #   images/train2014/COCO_train2014_000000119993.jpg
-    file_name = ('COCO_' + self._data_name + '_' +
-                 str(index).zfill(12) + '.jpg')
+    # file_name = ('COCO_' + self._data_name + '_' +
+    #              str(index).zfill(12) + '.jpg')
+    file_name = str(index).zfill(12) + '.jpg'
     image_path = osp.join(self._data_path, 'images',
                           self._data_name, file_name)
     assert osp.exists(image_path), \
@@ -250,6 +251,7 @@ class coco(imdb):
 
     print('~~~~ Summary metrics ~~~~')
     coco_eval.summarize()
+    return  ap_default
 
   def _do_detection_eval(self, res_file, output_dir):
     ann_type = 'bbox'
@@ -258,11 +260,12 @@ class coco(imdb):
     coco_eval.params.useSegm = (ann_type == 'segm')
     coco_eval.evaluate()
     coco_eval.accumulate()
-    self._print_detection_eval_metrics(coco_eval)
+    ap_default = self._print_detection_eval_metrics(coco_eval)
     eval_file = osp.join(output_dir, 'detection_results.pkl')
     with open(eval_file, 'wb') as fid:
       pickle.dump(coco_eval, fid, pickle.HIGHEST_PROTOCOL)
     print('Wrote COCO eval results to: {}'.format(eval_file))
+    return ap_default
 
   def _coco_results_one_category(self, boxes, cat_id):
     results = []
@@ -310,11 +313,13 @@ class coco(imdb):
     res_file += '.json'
     self._write_coco_results_file(all_boxes, res_file)
     # Only do evaluation on non-test sets
+    ap_default = None
     if self._image_set.find('test') == -1:
-      self._do_detection_eval(res_file, output_dir)
+      ap_default = self._do_detection_eval(res_file, output_dir)
     # Optionally cleanup results json file
     if self.config['cleanup']:
       os.remove(res_file)
+    return ap_default
 
   def competition_mode(self, on):
     if on:

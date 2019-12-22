@@ -66,8 +66,8 @@ __C.TRAIN.SCALES = (600, )
 __C.TRAIN.MAX_SIZE = 1000
 
 # Trim size for input images to create minibatch
-__C.TRAIN.TRIM_HEIGHT = 320
-__C.TRAIN.TRIM_WIDTH = 320
+__C.TRAIN.SIZE = [240,320,480]
+
 
 # Images to use per minibatch
 __C.TRAIN.IMS_PER_BATCH = 1
@@ -103,9 +103,8 @@ __C.TRAIN.BBOX_THRESH = 0.5
 # Iterations between snapshots
 __C.TRAIN.SNAPSHOT_ITERS = 5000
 
-# solver.prototxt specifies the snapshot path prefix, this adds an optional
-# infix to yield the path: <prefix>[_<infix>]_iters_XYZ.caffemodel
-__C.TRAIN.SNAPSHOT_PREFIX = 'res101_faster_rcnn'
+
+__C.TRAIN.SNAPSHOT_PREFIX = 'thundernet'
 # __C.TRAIN.SNAPSHOT_INFIX = ''
 
 # Use a prefetch thread in roi_data_layer.layer
@@ -151,6 +150,7 @@ __C.TRAIN.RPN_POST_NMS_TOP_N = 2000
 __C.TRAIN.RPN_MIN_SIZE = 8
 # Deprecated (outside weights)
 __C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
+# __C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (10.0, 10.0, 10.0, 10.0)
 # Give the positive RPN examples weight of p * 1 / {num positives}
 # and give negatives a weight of (1 - p)
 # Set to -1.0 to use uniform example weighting
@@ -170,16 +170,17 @@ __C.TRAIN.ASPECT_CROPPING = True
 #
 __C.TEST = edict()
 
+__C.TEST.SIZE = 320
 # Scale to use during testing (can NOT list multiple scales)
 # The scale is the pixel size of an image's shortest side
-__C.TEST.SCALES = (320, )
+
 
 # Max pixel size of the longest side of a scaled input image
-__C.TEST.MAX_SIZE = 480
+
 
 # Overlap threshold used for non-maximum suppression (suppress boxes with
 # IoU >= this threshold)
-__C.TEST.NMS = 0.3  # 0.3 , 0.5 only for light head rcnn
+__C.TEST.NMS = 0.5  # 0.3 , 0.5 only for light head rcnn
 
 # Experimental: treat the (K+1) units in the cls_score layer as linear
 # predictors (trained, eg, with one-vs-rest SVMs).
@@ -261,7 +262,9 @@ __C.DEDUP_BOXES = 1. / 16.
 # Pixel mean values (BGR order) as a (1, 1, 3) array
 # We use the same pixel mean for all networks even though it's not exactly what
 # they were trained with
-__C.PIXEL_MEANS = np.array([[[0.485 * 255, 0.456 * 255, 0.406 * 255]]])
+# __C.PIXEL_MEANS = np.array([[[0.485 * 255, 0.456 * 255, 0.406 * 255]]])
+__C.PIXEL_MEANS = (0.485 * 255, 0.456 * 255, 0.406 * 255)
+# __C.PIXEL_MEANS = np.array([[[0.485, 0.456 , 0.406 ]]])
 
 # For reproducibility
 __C.RNG_SEED = 3
@@ -302,9 +305,7 @@ __C.ANCHOR_SCALES = [2, 4 , 8, 16, 32]
 __C.ANCHOR_RATIOS = [1.0/2 , 3.0/4 , 1 , 4.0/3 , 2 ]
 
 # Feature stride for RPN
-__C.FEAT_STRIDE = [
-    16,
-]
+__C.FEAT_STRIDE = 16
 
 __C.CUDA = False
 

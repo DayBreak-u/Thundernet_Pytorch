@@ -21,10 +21,13 @@ def conv_bn(inp, oup, kernel_size , stride , pad):
 class CEM(nn.Module):
     """Context Enhancement Module"""
 
-    def __init__(self, in_channels1, in_channels2 ,in_channels3 , kernel_size=1, stride=1):
+    def __init__(self, in_channels1, in_channels2 ,in_channels3 ,feat_stride, kernel_size=1, stride=1):
         super(CEM, self).__init__()
-
+        self.feat_stride = feat_stride
         downsample_size = CEM_FILTER
+
+        if feat_stride == 8:
+            self.conv3 = nn.Conv2d(in_channels1 // 2 , downsample_size, kernel_size, bias=True)
 
         self.conv4 = nn.Conv2d(in_channels1, downsample_size, kernel_size, bias=True)
 
@@ -35,27 +38,60 @@ class CEM(nn.Module):
 
         # self.conv7 = nn.Conv2d(downsample_size, CEM_FILTER, kernel_size = 3, stride = 1, padding= 2 , bias=True)
         # self.bn7 = nn.BatchNorm2d(CEM_FILTER)
-        self.relu7 = nn.ReLU(inplace=True)
-
+        # self.relu7 = nn.ReLU(inplace=True)
+        self._initialize_weights()
     def forward(self,inputs):
 
-        C4_lat = self.conv4(inputs[0])
+        if self.feat_stride == 8:
+            C3_lat = self.conv3(inputs[0])
+            C4_lat = self.conv4(inputs[1])
+            C4_lat = F.interpolate(C4_lat, size=[C3_lat.size(2), C3_lat.size(3)], mode="nearest")
+            C5_lat = self.conv5(inputs[2])
+            C5_lat = F.interpolate(C5_lat, size=[C3_lat.size(2), C3_lat.size(3)], mode="nearest")
+            C6_lat = self.convlast(inputs[3])
+            out =   C3_lat +  C4_lat + C5_lat + C6_lat
+        else:
+            C4_lat = self.conv4(inputs[0])
 
-        C5_lat = self.conv5(inputs[1])
+            C5_lat = self.conv5(inputs[1])
 
-        C5_lat = F.interpolate(C5_lat, size=[C4_lat.size(2), C4_lat.size(3)], mode="nearest")
+            C5_lat = F.interpolate(C5_lat, size=[C4_lat.size(2), C4_lat.size(3)], mode="nearest")
 
-        C6_lat = self.convlast(inputs[2])
+            C6_lat = self.convlast(inputs[2])
 
 
-        out = C4_lat + C5_lat + C6_lat
+            out = C4_lat + C5_lat + C6_lat
 
         # out = self.conv7(out)
         # out = self.bn7(out)
-        out = self.relu7(out)
+        # out = self.relu7(out)
 
         # return C4_lat,out
         return out
+
+    def _initialize_weights(self):
+        for name, m in self.named_modules():
+            if isinstance(m, nn.Conv2d):
+                if 'first' in name:
+                    nn.init.normal_(m.weight, 0, 0.01)
+                else:
+                    nn.init.normal_(m.weight, 0, 1.0 / m.weight.shape[1])
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0001)
+                nn.init.constant_(m.running_mean, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0001)
+                nn.init.constant_(m.running_mean, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
 
 #
@@ -128,8 +164,10 @@ class RPN(nn.Module):
         self.bn0 = nn.BatchNorm2d(in_channels)
         self.relu0 = nn.ReLU(inplace=True)
         self.con1x1 = nn.Conv2d(in_channels, f_channels, kernel_size=1)
+        self.bn1 = nn.BatchNorm2d(f_channels)
         self.relu1 = nn.ReLU(inplace=True)
 
+        self._initialize_weights()
 
 
     def forward(self, x):
@@ -138,9 +176,34 @@ class RPN(nn.Module):
         x = self.bn0(x)
         x = self.relu0(x)
         x = self.con1x1(x)
+        x = self.bn1(x)
         x = self.relu1(x)
 
         return x
+
+    def _initialize_weights(self):
+        for name, m in self.named_modules():
+            if isinstance(m, nn.Conv2d):
+                if 'first' in name:
+                    nn.init.normal_(m.weight, 0, 0.01)
+                else:
+                    nn.init.normal_(m.weight, 0, 1.0 / m.weight.shape[1])
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0001)
+                nn.init.constant_(m.running_mean, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0001)
+                nn.init.constant_(m.running_mean, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
 
 class SAM(torch.nn.Module):
@@ -149,7 +212,7 @@ class SAM(torch.nn.Module):
 
         self.conv1 = nn.Conv2d(f_channels, CEM_FILTER, kernel_size=1)
         self.bn = nn.BatchNorm2d(CEM_FILTER)
-
+        self._initialize_weights()
     def forward(self, input):
 
         cem = input[0]
@@ -161,6 +224,30 @@ class SAM(torch.nn.Module):
         out = cem * sam
         return out
 
+
+    def _initialize_weights(self):
+        for name, m in self.named_modules():
+            if isinstance(m, nn.Conv2d):
+                if 'first' in name:
+                    nn.init.normal_(m.weight, 0, 0.01)
+                else:
+                    nn.init.normal_(m.weight, 0, 1.0 / m.weight.shape[1])
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0001)
+                nn.init.constant_(m.running_mean, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0001)
+                nn.init.constant_(m.running_mean, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
 
 class ShuffleV2Block(nn.Module):

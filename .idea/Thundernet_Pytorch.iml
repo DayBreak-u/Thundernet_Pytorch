@@ -6,8 +6,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Remote Python 3.6.3 (sftp://yanghuiyu@192.168.55.68:22/home/yanghuiyu/.pyenv/versions/anaconda3-5.0.1/bin/python)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="Face-Detector-1MB-with-landmark" />
-    <orderEntry type="module" module-name="centernet" />
+    <orderEntry type="module" module-name="Snet" />
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="Unittests" />

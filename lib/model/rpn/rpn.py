@@ -22,7 +22,7 @@ class _RPN(nn.Module):
         self.din = din  # get depth of input feature map, e.g., 512
         self.anchor_scales = cfg.ANCHOR_SCALES
         self.anchor_ratios = cfg.ANCHOR_RATIOS
-        self.feat_stride = cfg.FEAT_STRIDE[0]
+        self.feat_stride = cfg.FEAT_STRIDE
 
         # define the convrelu layers processing input feature map
         # self.RPN_Conv = nn.Conv2d(self.din, 512, 3, 1, 1, bias=True)
@@ -131,12 +131,16 @@ class _RPN(nn.Module):
             rpn_bbox_outside_weights = Variable(rpn_bbox_outside_weights)
             rpn_bbox_targets = Variable(rpn_bbox_targets)
 
+
+
+
             self.rpn_loss_box = _smooth_l1_loss(rpn_bbox_pred,
                                                 rpn_bbox_targets,
                                                 rpn_bbox_inside_weights,
                                                 rpn_bbox_outside_weights,
                                                 sigma=3,
-                                                dim=[1, 2, 3])
+                                                dim=[1, 2, 3],
+                                           )
 
 
 

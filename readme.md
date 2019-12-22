@@ -1,6 +1,8 @@
 # Thundernet_Pytorch
-## 20191210 update
-add snet146 pretrained model 
+## 20191222 update
+add data augmentation
+add Multi-scale training
+add onnx (doing)
 
 ## Requirements
 * pytorch 1.2.0

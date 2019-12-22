@@ -35,6 +35,13 @@ class _AnchorTargetLayer(nn.Module):
         # allow boxes to sit over the edge by a small amount
         self._allowed_border = 0  # default is 0
 
+        self.bbox_inside_weights = 1.
+
+        self.rpn_negative_overlap = cfg.TRAIN.RPN_NEGATIVE_OVERLAP
+        self.rpn_positive_overlap = cfg.TRAIN.RPN_POSITIVE_OVERLAP
+        self.rpn_fg_fraction = cfg.TRAIN.RPN_FG_FRACTION
+        self.rpn_batch_size = cfg.TRAIN.RPN_BATCHSIZE
+
     def forward(self, input):
         # Algorithm:
         #
@@ -149,9 +156,11 @@ class _AnchorTargetLayer(nn.Module):
         else:
             assert ((cfg.TRAIN.RPN_POSITIVE_WEIGHT > 0) &
                     (cfg.TRAIN.RPN_POSITIVE_WEIGHT < 1))
-
+        #
         bbox_outside_weights[labels == 1] = positive_weights
         bbox_outside_weights[labels == 0] = negative_weights
+        # bbox_outside_weights[labels == 0] = 0
+
 
         labels = _unmap(labels, total_anchors, inds_inside, batch_size, fill=-1)
         bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, batch_size, fill=0)
@@ -181,6 +190,100 @@ class _AnchorTargetLayer(nn.Module):
         outputs.append(bbox_outside_weights)
 
         return outputs
+
+    # def forward(self, x):
+    #     # prepare
+    #     x_cls_pred, gt_boxes, img_info, num_gt_boxes = x
+    #     batch_size = gt_boxes.size(0)
+    #     feature_height, feature_width = x_cls_pred.size(2), x_cls_pred.size(3)
+    #     # get shift
+    #     shift_x = np.arange(0, feature_width) * self._feat_stride
+    #     shift_y = np.arange(0, feature_height) * self._feat_stride
+    #     shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+    #     shifts = torch.from_numpy(
+    #         np.vstack((shift_x.ravel(), shift_y.ravel(), shift_x.ravel(), shift_y.ravel())).transpose())
+    #     shifts = shifts.contiguous().type_as(x_cls_pred).float()
+    #     # get anchors
+    #     anchors = self._anchors.type_as(gt_boxes)
+    #     anchors = anchors.view(1, self._num_anchors, 4) + shifts.view(shifts.size(0), 1, 4)
+    #     anchors = anchors.view(self._num_anchors * shifts.size(0), 4)
+    #     total_anchors_ori = anchors.size(0)
+    #     # make sure anchors are in the image
+    #     keep_idxs = ((anchors[:, 0] >= -self._allowed_border) &
+    #                  (anchors[:, 1] >= -self._allowed_border) &
+    #                  (anchors[:, 2] < int(img_info[0][1]) + self._allowed_border) &
+    #                  (anchors[:, 3] < int(img_info[0][0]) + self._allowed_border))
+    #     keep_idxs = torch.nonzero(keep_idxs).view(-1)
+    #     anchors = anchors[keep_idxs, :]
+    #     # prepare labels: 1 is positive, 0 is negative, -1 means ignore
+    #     labels = gt_boxes.new(batch_size, keep_idxs.size(0)).fill_(-1)
+    #     bbox_inside_weights = gt_boxes.new(batch_size, keep_idxs.size(0)).zero_()
+    #     bbox_outside_weights = gt_boxes.new(batch_size, keep_idxs.size(0)).zero_()
+    #     # calc ious
+    #     overlaps = bbox_overlaps_batch(anchors, gt_boxes)
+    #     max_overlaps, argmax_overlaps = torch.max(overlaps, 2)
+    #     gt_max_overlaps, _ = torch.max(overlaps, 1)
+    #     # assign labels
+    #     labels[max_overlaps < self.rpn_negative_overlap] = 0
+    #     gt_max_overlaps[gt_max_overlaps == 0] = 1e-5
+    #     keep_idxs_label = torch.sum(overlaps.eq(gt_max_overlaps.view(batch_size, 1, -1).expand_as(overlaps)), 2)
+    #     if torch.sum(keep_idxs_label) > 0:
+    #         labels[keep_idxs_label > 0] = 1
+    #     labels[max_overlaps >= self.rpn_positive_overlap] = 1
+    #     max_num_fg = int(self.rpn_fg_fraction * self.rpn_batch_size)
+    #     num_fg = torch.sum((labels == 1).int(), 1)
+    #     num_bg = torch.sum((labels == 0).int(), 1)
+    #     for i in range(batch_size):
+    #         if num_fg[i] > max_num_fg:
+    #             fg_idxs = torch.nonzero(labels[i] == 1).view(-1)
+    #             rand_num = torch.from_numpy(np.random.permutation(fg_idxs.size(0))).type_as(gt_boxes).long()
+    #             disable_idxs = fg_idxs[rand_num[:fg_idxs.size(0) - max_num_fg]]
+    #             labels[i][disable_idxs] = -1
+    #         max_num_bg = self.rpn_batch_size - torch.sum((labels == 1).int(), 1)[i]
+    #         if num_bg[i] > max_num_bg:
+    #             bg_idxs = torch.nonzero(labels[i] == 0).view(-1)
+    #             rand_num = torch.from_numpy(np.random.permutation(bg_idxs.size(0))).type_as(gt_boxes).long()
+    #             disable_idxs = bg_idxs[rand_num[:bg_idxs.size(0) - max_num_bg]]
+    #             labels[i][disable_idxs] = -1
+    #     offsets = torch.arange(0, batch_size) * gt_boxes.size(1)
+    #     argmax_overlaps = argmax_overlaps + offsets.view(batch_size, 1).type_as(argmax_overlaps)
+    #     gt_rois = gt_boxes.view(-1, 5)[argmax_overlaps.view(-1), :].view(batch_size, -1, 5)
+    #     bbox_targets = _compute_targets_batch(anchors, gt_boxes.view(-1,5)[argmax_overlaps.view(-1), :].view(batch_size, -1, 5))
+    #     # _compute_targets_batch(anchors, gt_boxes.view(-1,5)[argmax_overlaps.view(-1), :].view(batch_size, -1, 5))
+    #     bbox_inside_weights[labels == 1] = self.bbox_inside_weights
+    #     num_examples = torch.sum(labels[i] >= 0)
+    #     bbox_outside_weights[labels == 1] = 1.0 / num_examples.item()
+    #     bbox_outside_weights[labels == 0] = 1.0 / num_examples.item()
+    #     # unmap
+    #     labels = _unmap(labels, total_anchors_ori, keep_idxs, batch_size, fill=-1)
+    #     bbox_targets = _unmap(bbox_targets, total_anchors_ori, keep_idxs, batch_size, fill=0)
+    #     bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors_ori, keep_idxs, batch_size,
+    #                                                     fill=0)
+    #     bbox_outside_weights = _unmap(bbox_outside_weights, total_anchors_ori, keep_idxs, batch_size,
+    #                                                      fill=0)
+    #     # format return values
+    #     outputs = []
+    #     labels = labels.view(batch_size, feature_height, feature_width, self._num_anchors).permute(0, 3, 1,
+    #                                                                                               2).contiguous()
+    #     labels = labels.view(batch_size, 1, self._num_anchors * feature_height, feature_width)
+    #     outputs.append(labels)
+    #     bbox_targets = bbox_targets.view(batch_size, feature_height, feature_width, self._num_anchors * 4).permute(0, 3,
+    #                                                                                                               1,
+    #                                                                                                               2).contiguous()
+    #     outputs.append(bbox_targets)
+    #     bbox_inside_weights = bbox_inside_weights.view(batch_size, total_anchors_ori, 1).expand(batch_size,
+    #                                                                                             total_anchors_ori, 4)
+    #     bbox_inside_weights = bbox_inside_weights.contiguous().view(batch_size, feature_height, feature_width,
+    #                                                                 4 * self._num_anchors).permute(0, 3, 1,
+    #                                                                                               2).contiguous()
+    #     outputs.append(bbox_inside_weights)
+    #     bbox_outside_weights = bbox_outside_weights.view(batch_size, total_anchors_ori, 1).expand(batch_size,
+    #                                                                                               total_anchors_ori, 4)
+    #     bbox_outside_weights = bbox_outside_weights.contiguous().view(batch_size, feature_height, feature_width,
+    #                                                                   4 * self._num_anchors).permute(0, 3, 1,
+    #                                                                                                 2).contiguous()
+    #     outputs.append(bbox_outside_weights)
+    #     return outputs
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""

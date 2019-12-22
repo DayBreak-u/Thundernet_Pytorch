@@ -51,7 +51,7 @@ def prepare_roidb(imdb):
 
 def rank_roidb_ratio(roidb):
     # rank roidb based on the ratio between width and height.
-    ratio_large = 2  # largest ratio to preserve.
+    ratio_large = 2.0  # largest ratio to preserve.
     ratio_small = 0.5  # smallest ratio to preserve.
 
     ratio_list = []
@@ -139,7 +139,9 @@ def combined_roidb(imdb_names, training=True):
 
     if training:
         roidb = filter_roidb(roidb)
+        return imdb, roidb
+    else:
+        ratio_list, ratio_index = rank_roidb_ratio(roidb)
 
-    ratio_list, ratio_index = rank_roidb_ratio(roidb)
+        return imdb, roidb, ratio_list, ratio_index
 
-    return imdb, roidb, ratio_list, ratio_index

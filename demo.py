@@ -31,11 +31,7 @@ from torchvision.ops import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
 from model.utils.blob import im_list_to_blob
-from model.faster_rcnn.vgg16 import vgg16
-from model.faster_rcnn.resnet import resnet
-from model.faster_rcnn.xception_like import xception
-from model.faster_rcnn.squeezenet import squeezenet
-from model.faster_rcnn.mobilenet import mobilenetv2
+
 from model.faster_rcnn.Snet import snet
 from utils import  color_list
 import pdb
@@ -59,7 +55,7 @@ def parse_args():
     parser.add_argument('--cfg',
                         dest='cfg_file',
                         help='optional config file',
-                        default='cfgs/vgg16.yml',
+                        default='cfgs/snet.yml',
                         type=str)
     parser.add_argument('--net',
                         dest='net',
@@ -144,25 +140,22 @@ def _get_image_blob(im):
     im_orig -= cfg.PIXEL_MEANS
 
     im_shape = im_orig.shape
-    im_size_min = np.min(im_shape[0:2])
-    im_size_max = np.max(im_shape[0:2])
+
 
     processed_ims = []
     im_scale_factors = []
 
-    for target_size in cfg.TEST.SCALES:
-        im_scale = float(target_size) / float(im_size_min)
-        # Prevent the biggest axis from being more than MAX_SIZE
-        if np.round(im_scale * im_size_max) > cfg.TEST.MAX_SIZE:
-            im_scale = float(cfg.TEST.MAX_SIZE) / float(im_size_max)
-        im = cv2.resize(im_orig,
-                        None,
-                        None,
-                        fx=im_scale,
-                        fy=im_scale,
+    size = cfg.TEST.SIZE
+    im_scale_w = float(size) / float(im_shape[1])
+    im_scale_h = float(size) / float(im_shape[0])
+    # Prevent the biggest axis from being more than MAX_SIZE
+
+    im = cv2.resize(im_orig,
+                    (size,size),
                         interpolation=cv2.INTER_LINEAR)
-        im_scale_factors.append(im_scale)
-        processed_ims.append(im)
+    im_scale_factors.append(im_scale_w)
+    im_scale_factors.append(im_scale_h)
+    processed_ims.append(im)
 
     # Create a blob to hold the input images
     blob = im_list_to_blob(processed_ims)
@@ -218,9 +211,8 @@ if __name__ == '__main__':
         'tvmonitor'
     ])
 
-
-
-    _RCNN = snet(pascal_classes, pretrained_path= None  , class_agnostic=args.class_agnostic)
+    layer = int(args.net.split("_")[1])
+    _RCNN = snet(pascal_classes,layer, pretrained_path= None  , class_agnostic=args.class_agnostic)
 
 
     _RCNN.create_architecture()
@@ -305,15 +297,14 @@ if __name__ == '__main__':
         if len(im_in.shape) == 2:
             im_in = im_in[:, :, np.newaxis]
             im_in = np.concatenate((im_in, im_in, im_in), axis=2)
-        # rgb -> bgr
-        im = im_in[:, :, ::-1]
 
+        im =  im_in
         blobs, im_scales = _get_image_blob(im)
 
-        assert len(im_scales) == 1, "Only single-image batch implemented"
+
         im_blob = blobs
         im_info_np = np.array(
-            [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
+            [[im_blob.shape[1], im_blob.shape[2], im_scales[0], im_scales[1]]],
             dtype=np.float32)
 
         im_data_pt = torch.from_numpy(im_blob)
@@ -367,7 +358,8 @@ if __name__ == '__main__':
             # Simply repeat the boxes, once for each class
             pred_boxes = np.tile(boxes, (1, scores.shape[1]))
 
-        pred_boxes /= im_scales[0]
+        pred_boxes[:, :, 0::2] /= im_scales[0]
+        pred_boxes[:, :, 1::2] /= im_scales[1]
 
         scores = scores.squeeze()
         pred_boxes = pred_boxes.squeeze()

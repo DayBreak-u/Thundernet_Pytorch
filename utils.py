@@ -84,3 +84,4 @@ color_list = np.array(
         ]
     ).astype(np.float32)
 color_list = color_list.reshape((-1, 3)) * 255
+

@@ -18,6 +18,7 @@ from model.utils.config import cfg
 from .generate_anchors import generate_anchors
 from .bbox_transform import bbox_transform_inv, clip_boxes, clip_boxes_batch
 from torchvision.ops import nms
+from external.nms import soft_nms
 import pdb
 
 DEBUG = False
@@ -144,7 +145,11 @@ class _ProposalLayer(nn.Module):
             # 7. take after_nms_topN (e.g. 300)
             # 8. return the top proposals (-> RoIs top)
             keep_idx_i = nms(proposals_single, scores_single.squeeze(1), nms_thresh)
-            keep_idx_i = keep_idx_i.long().view(-1)
+
+            # keep_idx_i = soft_nms(torch.cat((proposals_single, scores_single), 1).cpu().numpy(), Nt=0.5, method=2)
+            # keep_idx_i = torch.as_tensor(keep_idx_i, dtype=torch.long)
+            #
+            # keep_idx_i = keep_idx_i.long().view(-1)
 
             if post_nms_topN > 0:
                 keep_idx_i = keep_idx_i[:post_nms_topN]
