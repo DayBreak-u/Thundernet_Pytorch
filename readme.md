@@ -1,8 +1,8 @@
 # Thundernet_Pytorch
 ## 20191222 update
-add data augmentation
-add Multi-scale training
-add onnx (doing)
+- add data augmentation
+- add Multi-scale training
+- add onnx (doing)
 
 ## Requirements
 * pytorch 1.2.0
@@ -57,6 +57,10 @@ Please cite the paper in your publications if it helps your research:
   year={2019}
 }
 ```
+
+##VOC TEST EXAMPLE
+!https://github.com/ouyanghuiyu/Thundernet_Pytorch/blob/master/voc_images/output/2008_000005.jpg
+
 
 
 
