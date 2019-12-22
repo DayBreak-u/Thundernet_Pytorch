@@ -4,6 +4,9 @@
 - add Multi-scale training
 - add onnx (doing)
 
+##pretrained model
+- train code in : https://github.com/ouyanghuiyu/Snet
+
 ## Requirements
 * pytorch 1.2.0
 * torchvision 0.4
