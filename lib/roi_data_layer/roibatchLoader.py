@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 from roi_data_layer.augmentation import SSDAugmentation
 import model.utils.config  as  config
+from roi_data_layer.utils import BaseTransform
 
 cfg = config.cfg
 
@@ -45,9 +46,11 @@ class Detection(data.Dataset):
 
         if self.training:
             index , size = index
+            self.transform = SSDAugmentation(size, cfg.PIXEL_MEANS)
         else:
             size  = cfg.TEST.SIZE
-        self.transform = SSDAugmentation(size, cfg.PIXEL_MEANS)
+            self.transform = BaseTransform(size, cfg.PIXEL_MEANS)
+
         roidb = self._roidb[index]
         im  = cv2.imread(roidb['image'])
         if len(im.shape) == 2:
