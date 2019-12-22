@@ -59,7 +59,7 @@ Please cite the paper in your publications if it helps your research:
 ```
 
 ##VOC TEST EXAMPLE
-!https://github.com/ouyanghuiyu/Thundernet_Pytorch/blob/master/voc_images/output/2008_000005.jpg
+![test](https://github.com/ouyanghuiyu/Thundernet_Pytorch/blob/master/voc_images/output/2008_000005.jpg)
 
 
 
