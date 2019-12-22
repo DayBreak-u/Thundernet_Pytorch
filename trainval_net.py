@@ -227,9 +227,9 @@ class BatchSampler(Sampler):
                 self.count_change_size += 1
                 yield batch
                 batch = []
-                if self.count_change_size  % 50 == 0:
+                if self.count_change_size  % 10 == 0:
                     self.size = random.choice(cfg.TRAIN.SIZE)
-                    print("change train size to ({},{})".format(self.size,self.size))
+                    # print("change train size to ({},{})".format(self.size,self.size))
         self.count_change_size = 0
         if len(batch) > 0 and not self.drop_last:
             yield batch
@@ -511,8 +511,8 @@ if __name__ == '__main__':
                     fg_cnt = torch.sum(rois_label.data.ne(0))
                     bg_cnt = rois_label.data.numel() - fg_cnt
 
-                print("[epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e, rpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
-                    % (epoch, step, iters_per_epoch, loss_temp, lr, loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
+                print("[epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e, rpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f size:(%3d,%3d)" \
+                    % (epoch, step, iters_per_epoch, loss_temp, lr, loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box,sampler_batch.size,sampler_batch.size))
                 # scale = random.choice([256, 320, 480])
                 # cfg.TRAIN.SCALES = [scale]
                 # print("change SCALE:{}".format(scale))
