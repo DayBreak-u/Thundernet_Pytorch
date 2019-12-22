@@ -42,11 +42,12 @@ class Detection(data.Dataset):
             tuple: Tuple (image, target, height, width).
                    target is the object returned by ``coco.loadAnns``.
         """
+
         if self.training:
             index , size = index
-            self.transform = SSDAugmentation(size,cfg.PIXEL_MEANS)
         else:
-            self.transform = SSDAugmentation(cfg.TEST.SIZE, cfg.PIXEL_MEANS)
+            size  = cfg.TEST.SIZE
+        self.transform = SSDAugmentation(size, cfg.PIXEL_MEANS)
         roidb = self._roidb[index]
         im  = cv2.imread(roidb['image'])
         if len(im.shape) == 2:
@@ -83,14 +84,14 @@ class Detection(data.Dataset):
             for box in boxes:
                 if number_box>=20:
                     break
-                target_re[number_box] =   np.array([box[0]*320 ,box[1]*320,box[2]*320,box[3]*320,labels[number_box]])
+                target_re[number_box] =   np.array([box[0]*size ,box[1]*size,box[2]*size,box[3]*size,labels[number_box]])
 
                 number_box+=1
             # target = np.hstack((boxes, np.expand_dims(labels, axis=1)))
             # img_id, img, gt_boxes_padding, img_info, num_gt_boxes
 
         data = torch.as_tensor(img, dtype=torch.float32)
-        im_info = torch.from_numpy(np.array([img.shape[1], img.shape[2],  320.0/width ,320.0/height ]))
+        im_info = torch.from_numpy(np.array([img.shape[1], img.shape[2],  size/width ,size/height ]))
         im_info = im_info.view(4)
         gt_boxes = torch.as_tensor(target_re, dtype=torch.int16)
 
@@ -100,7 +101,7 @@ class Detection(data.Dataset):
         else:
 
             # im_info = np.array([[im.shape[1], im.shape[2], ratio]], dtype=np.float32)
-            im_info = np.array([[img.shape[1], img.shape[2],  320.0/width ,320.0/height]], dtype=np.float32)
+            im_info = np.array([[img.shape[1], img.shape[2],  size/width ,size/height]], dtype=np.float32)
             im_info = torch.as_tensor(im_info, dtype=torch.float32)
             im_info = im_info.view(4)
             gt_boxes = torch.FloatTensor([1, 1, 1, 1, 1])
