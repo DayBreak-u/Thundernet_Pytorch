@@ -35,12 +35,11 @@ sh  train_146.sh
 sh  train_535.sh
 ```
 
-## Test
+## demo
 ```sh
 cd script
-sh  test49.sh
-sh  test146.sh
-sh  test535.sh
+sh  pre.sh
+
 ```
 
 
