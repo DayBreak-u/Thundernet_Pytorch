@@ -4,7 +4,7 @@
 - add Multi-scale training
 - add onnx (doing)
 
-##pretrained model
+## pretrained model
 - train code in : https://github.com/ouyanghuiyu/Snet
 
 ## Requirements
