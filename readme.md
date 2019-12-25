@@ -42,10 +42,15 @@ sh  pre.sh
 
 ```
 
+## VOC 2007 test MAP
+| Arch | Paper |  Our PyTorch Version |
+|:-:|:-:|:-:|
+| Thundernet146 | 75.1% | 67.0% |
+
+
 
 ## TODO LIST
  
- - add voc test result
  - add coco train and test
  - add NCNN inference
 
