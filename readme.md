@@ -45,8 +45,8 @@ sh  pre.sh
 ## VOC 2007 test MAP
 | Arch | Paper |  Our PyTorch Version | pretrained |
 |:-:|:-:|:-:|:-:|
-| Thundernet146 | 75.1% | 67.0% | imagenet |
-| Thundernet146 |  |  | coco |
+| Thundernet146 |  | 67.0% | imagenet |
+| Thundernet146 | 75.1% |  | coco |
 
 
 ## TODO LIST
