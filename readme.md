@@ -43,10 +43,10 @@ sh  pre.sh
 ```
 
 ## VOC 2007 test MAP
-| Arch | Paper |  Our PyTorch Version |
-|:-:|:-:|:-:|
-| Thundernet146 | 75.1% | 67.0% |
-
+| Arch | Paper |  Our PyTorch Version | pretrained |
+|:-:|:-:|:-:|:-:|
+| Thundernet146 | 75.1% | 67.0% | imagenet |
+| Thundernet146 |  |  | coco |
 
 
 ## TODO LIST
