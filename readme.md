@@ -1,6 +1,6 @@
 # Thundernet_Pytorch
 
-## 项目已经更新：[mmdetection_lite](https://github.com/ouyanghuiyu/mmdetection_lite)
+## 项目已经更新：[thundernet_mmdetection](https://github.com/ouyanghuiyu/thundernet_mmdetection)
 ## 20191222 update
 - add data augmentation
 - add Multi-scale training
